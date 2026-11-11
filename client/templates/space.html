@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 场景打造</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --page-gap-x: 100px;
+            --page-gap-y: 40px;
+            --topbar-height: 58px;
+            --topbar-top: var(--page-gap-y);
+            --bottom-bar-height: 168px;
+            --left-bar-width: 260px;
+            --model-card-scale: 1;
+            --model-card-base-width: 140px;
+            --model-thumb-base-height: 80px;
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --background-color: #201098;
+            --text-primary: #2b2d42;
+            --text-secondary: #8d99ae;
+            --border-color: #e5e7eb;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+        .page-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .topbar {
+            position: fixed;
+            top: var(--topbar-top);
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100vw - var(--page-gap-x) * 2);
+            max-width: 1600px;
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 0 24px;
+            z-index: 60;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        .btn, .select, .input {
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid #d5d9e4;
+            background: #ffffff;
+            color: var(--text-primary);
+            padding: 0 10px;
+        }
+        .btn { cursor: pointer; }
+        .btn:hover { background: #f3f5fb; }
+        .btn.active {
+            color: #ffffff;
+            border-color: transparent;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        }
+        .stage-shell {
+            position: fixed;
+            top: calc(var(--topbar-top) + var(--topbar-height) + 14px);
+            left: calc(var(--page-gap-x) + var(--left-bar-width) + 16px);
+            right: var(--page-gap-x);
+            bottom: var(--page-gap-y);
+            background: var(--background-color);
+            border-radius: 22px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            z-index: 30;
+        }
+        #viewer { position: absolute; top: 0; left: 0; right: 0; bottom: var(--bottom-bar-height); }
+        .leftbar {
+            position: fixed;
+            top: calc(var(--topbar-top) + var(--topbar-height) + 14px);
+            left: var(--page-gap-x);
+            width: var(--left-bar-width);
+            bottom: var(--page-gap-y);
+            background: #ffffff;
+            border-radius: 22px;
+            z-index: 31;
+            overflow-y: auto;
+            padding: 14px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+        }
+        .gizmo-toolbar {
+            position: fixed; z-index: 40; display: none; gap: 4px; padding: 4px;
+            border: 1px solid #d0d0d0; border-radius: 8px; background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+        .gizmo-toolbar .btn.small { min-width: 44px; }
+        .floating-delete-btn {
+            position: fixed;
+            z-index: 41;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid #b10000;
+            background: #e53935;
+            color: #ffffff;
+            font-size: 18px;
+            line-height: 1;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        .floating-delete-btn:hover {
+            background: #d32f2f;
+        }
+        .selection-box {
+            position: fixed;
+            z-index: 45;
+            display: none;
+            border: 1px dashed #2b63c6;
+            background: rgba(43, 99, 198, 0.14);
+            pointer-events: none;
+        }
+        .bottombar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: var(--bottom-bar-height);
+            background: rgba(248, 249, 252, 0.98);
+            border-top: 1px solid var(--border-color);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        .bottom-resize-handle {
+            position: absolute; top: 0; left: 0; right: 0; height: 10px; cursor: ns-resize;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .bottom-resize-handle::before {
+            content: ''; width: 60px; height: 3px; border-radius: 999px; background: #c9c9c9;
+        }
+        .search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        #modelList { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; flex: 1; align-items: stretch; }
+        .model-card {
+            width: calc(var(--model-card-base-width) * var(--model-card-scale));
+            min-width: calc(var(--model-card-base-width) * var(--model-card-scale));
+            max-width: calc(var(--model-card-base-width) * var(--model-card-scale));
+            background: #ffffff; border: 1px solid #d8d8d8; border-radius: 10px; padding: 6px;
+            cursor: pointer; flex-shrink: 0; display: flex; flex-direction: column;
+        }
+        .model-card:hover { border-color: #8da6ff; }
+        .model-thumb-wrap {
+            width: 100%;
+            height: calc(var(--model-thumb-base-height) * var(--model-card-scale));
+            min-height: calc(var(--model-thumb-base-height) * var(--model-card-scale));
+            display: flex; align-items: center; justify-content: center;
+        }
+        .model-thumb { width: 100%; height: 100%; object-fit: contain; border-radius: 8px; background: #f0f0f0; }
+        .model-name { margin-top: 6px; font-size: 12px; line-height: 16px; min-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sidebar {
+            position: absolute;
+            top: 14px;
+            right: -372px;
+            width: 360px;
+            bottom: calc(var(--bottom-bar-height) + 14px);
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            z-index: 35;
+            transition: right 0.2s ease;
+            overflow-y: auto;
+            padding: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+        .sidebar.open { right: 14px; }
+        .panel-title { font-size: 14px; font-weight: bold; margin: 10px 0 8px; }
+        .entity-row, .scene-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+        .entity-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+        .small { height: 26px; font-size: 12px; padding: 0 6px; }
+        .grid-3 { display: flex; gap: 6px; }
+        .grid-3 .input.small { flex: 0 0 calc((100% - 12px) / 3); min-width: 0; }
+        .transform-bar { display: flex; gap: 6px; margin-bottom: 8px; }
+        .hint { color: #666666; font-size: 12px; }
+        .control-item { margin: 8px 0; }
+        .control-item label { display: block; font-size: 12px; color: #555555; margin-bottom: 4px; }
+        .control-slider { width: 100%; }
+        .control-value { margin-top: 4px; font-size: 12px; color: #666666; text-align: right; }
+    </style>
+</head>
+<body>
+    <div class="page-bg"></div>
+    <div class="topbar">
+        <button class="btn" id="backBtn">返回</button>
+        <button class="btn" id="menuBtn">菜单</button>
+        <button class="btn" id="modeBtn">编辑模式</button>
+        <span id="modeHint" style="margin-left:6px;font-size:12px;color:#6b7280;white-space:nowrap;"></span>
+        <button class="btn" id="undoBtn">撤销</button>
+        <button class="btn" id="saveBtn">保存</button>
+    </div>
+
+    <div class="leftbar">
+        <div class="panel-title">基础场景</div>
+        <select class="select" id="baseSceneSelect" style="width:100%;">
+            <option value="">选择基础场景</option>
+        </select>
+
+        <div class="panel-title">已保存场景</div>
+        <div id="savedSceneList"></div>
+    </div>
+
+    <div class="stage-shell">
+        <div id="viewer"></div>
+        <div id="selectionBox" class="selection-box"></div>
+
+        <div class="sidebar" id="sidebar">
+            <div class="panel-title">实体列表</div>
+            <div id="entityList"></div>
+            <div class="hint">编辑模式下点击实体，可调整位置/旋转/大小。</div>
+
+            <div class="panel-title">变换工具</div>
+            <div class="transform-bar">
+                <button class="btn small" id="toolMoveBtn">移动</button>
+                <button class="btn small" id="toolRotateBtn">旋转</button>
+                <button class="btn small" id="toolScaleBtn">缩放</button>
+            </div>
+
+            <div class="panel-title">位置</div>
+            <div class="grid-3">
+                <input class="input small" id="posX" type="number" step="0.1" placeholder="X">
+                <input class="input small" id="posY" type="number" step="0.1" placeholder="Y">
+                <input class="input small" id="posZ" type="number" step="0.1" placeholder="Z">
+            </div>
+
+            <div class="panel-title">旋转(度)</div>
+            <div class="grid-3">
+                <input class="input small" id="rotX" type="number" step="1" placeholder="X">
+                <input class="input small" id="rotY" type="number" step="1" placeholder="Y">
+                <input class="input small" id="rotZ" type="number" step="1" placeholder="Z">
+            </div>
+
+            <div class="panel-title">缩放</div>
+            <div class="grid-3">
+                <input class="input small" id="scaleX" type="number" step="0.1" min="0.01" placeholder="X">
+                <input class="input small" id="scaleY" type="number" step="0.1" min="0.01" placeholder="Y">
+                <input class="input small" id="scaleZ" type="number" step="0.1" min="0.01" placeholder="Z">
+            </div>
+            <button class="btn small" id="applyTransformBtn" style="margin-top:8px;">应用数值</button>
+
+            <div class="panel-title">光线调整</div>
+            <div class="control-item">
+                <label>光照亮度</label>
+                <input type="range" class="control-slider" id="light-intensity" min="0" max="2" value="1" step="0.1">
+                <div class="control-value" id="light-intensity-value">1.0</div>
+            </div>
+            <div class="control-item">
+                <label>色温</label>
+                <input type="range" class="control-slider" id="light-temperature" min="2000" max="8000" value="5500" step="100">
+                <div class="control-value" id="light-temperature-value">5500K</div>
+            </div>
+        </div>
+
+        <div class="bottombar">
+            <div class="bottom-resize-handle" id="bottomResizeHandle"></div>
+            <div class="search-row">
+                <input class="input" id="modelSearchInput" placeholder="搜索模型名称...">
+                <button class="btn" id="refreshModelsBtn">刷新模型</button>
+            </div>
+            <div id="modelList"></div>
+        </div>
+    </div>
+    <script>
+        const state = {
+            /** @type {'edit'|'view'|'roam'} */
+            sceneMode: 'edit',
+            availableModels: [],
+            baseScenes: [],
+            entities: [],
+            selectedEntityId: null,
+            selectedEntityIds: [],
+            entityNameCount: {},
+            baseSceneObject: null,
+            thumbnailMap: {},
+            undoStack: [],
+            isApplyingUndo: false,
+            isTransformInteracting: false,
+            isApplyingUniformScale: false,
+            transformStartMap: {},
+            /** @type {null|'x'|'y'|'z'} */
+            transformAxisConstraint: null,
+            modalTransform: {
+                active: false,
+                mode: null,
+                axis: null,
+                entityId: null,
+                startMouse: { x: 0, y: 0 },
+                lastMouse: { x: 0, y: 0 },
+                before: null
+            },
+            mousePosition: { x: window.innerWidth * 0.5, y: window.innerHeight * 0.5 },
+            isShiftPressed: false,
+            boxSelect: {
+                active: false,
+                startX: 0,
+                startY: 0,
+                pointerDownX: 0,
+                pointerDownY: 0
+            },
+            multiTransform: {
+                proxy: new THREE.Object3D(),
+                active: false,
+                beforeMap: {},
+                prevProxyMatrixWorld: new THREE.Matrix4()
+            },
+            pendingSelectionConfirmClick: false,
+            sceneLights: {
+                ambient: null,
+                directionals: []
+            }
+        };
+
+        const viewer = document.getElementById('viewer');
+        const sidebar = document.getElementById('sidebar');
+        const modelList = document.getElementById('modelList');
+        const entityList = document.getElementById('entityList');
+        const savedSceneList = document.getElementById('savedSceneList');
+        const baseSceneSelect = document.getElementById('baseSceneSelect');
+        const modeBtn = document.getElementById('modeBtn');
+        const modeHint = document.getElementById('modeHint');
+        const selectionBox = document.getElementById('selectionBox');
+        const bottombar = document.querySelector('.bottombar');
+        const bottomResizeHandle = document.getElementById('bottomResizeHandle');
+        const MIN_BOTTOM_BAR_HEIGHT = 140;
+        const MAX_BOTTOM_BAR_HEIGHT = 420;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xd1d5db);
+        const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1000);
+        camera.position.set(5, 4, 7);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.9;
+        viewer.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 1, 0);
+        controls.enablePan = false;
+        controls.mouseButtons.LEFT = null;
+        controls.mouseButtons.MIDDLE = THREE.MOUSE.ROTATE;
+        controls.mouseButtons.RIGHT = null;
+
+        const clock = new THREE.Clock();
+        const roam = {
+            yaw: 0,
+            pitch: 0,
+            keys: {},
+            eyeHeight: 0.825,
+            moveSpeed: 5.5,
+            verticalSpeed: 4.5,
+            lookSensitivity: 0.0022
+        };
+
+        const transformControls = new THREE.TransformControls(camera, renderer.domElement);
+        transformControls.setSize(0.9);
+        transformControls.addEventListener('dragging-changed', (e) => { controls.enabled = !e.value; });
+        transformControls.addEventListener('objectChange', () => updateTransformInputs());
+        scene.add(transformControls);
+        scene.add(state.multiTransform.proxy);
+
+        function setupSceneLights() {
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            state.sceneLights.ambient = ambientLight;
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.3);
+            mainLight.position.set(0, 0, 5);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 2048;
+            mainLight.shadow.mapSize.height = 2048;
+            mainLight.shadow.camera.near = 0.5;
+            mainLight.shadow.camera.far = 50;
+            mainLight.shadow.camera.left = -10;
+            mainLight.shadow.camera.right = 10;
+            mainLight.shadow.camera.top = 10;
+            mainLight.shadow.camera.bottom = -10;
+            mainLight.userData.originalIntensity = 1.3;
+            scene.add(mainLight);
+
+            const topLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            topLight.position.set(0, 5, 0);
+            topLight.target.position.set(0, 0, 0);
+            topLight.userData.originalIntensity = 1.2;
+            scene.add(topLight);
+            scene.add(topLight.target);
+
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.55);
+            fillLight.position.set(-3, 2, 3);
+            fillLight.userData.originalIntensity = 0.55;
+            scene.add(fillLight);
+
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
+            rimLight.position.set(0, 0, -5);
+            rimLight.userData.originalIntensity = 0.35;
+            scene.add(rimLight);
+
+            state.sceneLights.directionals = [mainLight, topLight, fillLight, rimLight];
+        }
+        setupSceneLights();
+        const grid = new THREE.GridHelper(40, 40, 0xb5b5b5, 0xe2e2e2);
+        scene.add(grid);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const gltfLoader = new THREE.GLTFLoader();
+
+        function collectMeshesForRoamGround() {
+            const meshes = [];
+            if (state.baseSceneObject) {
+                state.baseSceneObject.traverse((c) => {
+                    if (c.isMesh) meshes.push(c);
+                });
+            }
+            state.entities.forEach((e) => {
+                e.object3d.traverse((c) => {
+                    if (c.isMesh) meshes.push(c);
+                });
+            });
+            return meshes;
+        }
+
+        function sampleGroundY(x, z) {
+            const meshes = collectMeshesForRoamGround();
+            if (!meshes.length) return 0;
+            raycaster.ray.origin.set(x, 200, z);
+            raycaster.ray.direction.set(0, -1, 0);
+            raycaster.near = 0;
+            raycaster.far = 400;
+            const hits = raycaster.intersectObjects(meshes, true);
+            return hits.length ? hits[0].point.y : 0;
+        }
+
+        function updateRoam(delta) {
+            const sprint = roam.keys['ShiftLeft'] || roam.keys['ShiftRight'];
+            const speed = roam.moveSpeed * (sprint ? 2 : 1) * delta;
+            const verticalSpeed = roam.verticalSpeed * (sprint ? 1.5 : 1) * delta;
+            const forward = new THREE.Vector3(-Math.sin(roam.yaw), 0, -Math.cos(roam.yaw));
+            const right = new THREE.Vector3(Math.cos(roam.yaw), 0, -Math.sin(roam.yaw));
+            const move = new THREE.Vector3();
+            if (roam.keys['KeyW'] || roam.keys['ArrowUp']) move.add(forward);
+            if (roam.keys['KeyS'] || roam.keys['ArrowDown']) move.sub(forward);
+            if (roam.keys['KeyA'] || roam.keys['ArrowLeft']) move.sub(right);
+            if (roam.keys['KeyD'] || roam.keys['ArrowRight']) move.add(right);
+            if (move.lengthSq() > 0) {
+                move.normalize().multiplyScalar(speed);
+                camera.position.x += move.x;
+                camera.position.z += move.z;
+            }
+            const groundY = sampleGroundY(camera.position.x, camera.position.z);
+            if (roam.keys['Space']) camera.position.y += verticalSpeed;
+            if (roam.keys['KeyC']) camera.position.y -= verticalSpeed;
+            // 仅限制不低于地面，不再锁定固定高度
+            camera.position.y = Math.max(groundY, camera.position.y);
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = roam.yaw;
+            camera.rotation.x = roam.pitch;
+            camera.rotation.z = 0;
+        }
+        const previewRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+        previewRenderer.setSize(240, 160);
+        previewRenderer.outputEncoding = THREE.sRGBEncoding;
+        previewRenderer.toneMappingExposure = 1.9;
+
+        function configureModelMaterials(root) {
+            root.traverse((child) => {
+                if (!child.isMesh || !child.material) return;
+                const sourceMaterials = Array.isArray(child.material) ? child.material : [child.material];
+                const convertedMaterials = sourceMaterials.map((material) => {
+                    if (material.map) {
+                        material.map.needsUpdate = true;
+                        material.map.encoding = THREE.sRGBEncoding;
+                    }
+                    const basic = new THREE.MeshBasicMaterial({
+                        color: material.color ? material.color.clone() : new THREE.Color(0xffffff),
+                        map: material.map || null,
+                        transparent: !!material.transparent,
+                        opacity: typeof material.opacity === 'number' ? material.opacity : 1,
+                        side: material.side ?? THREE.FrontSide,
+                        alphaTest: typeof material.alphaTest === 'number' ? material.alphaTest : 0,
+                        blending: material.blending ?? THREE.NormalBlending,
+                        depthTest: material.depthTest !== false,
+                        depthWrite: material.depthWrite !== false,
+                        wireframe: !!material.wireframe
+                    });
+                    return basic;
+                });
+                child.material = Array.isArray(child.material) ? convertedMaterials : convertedMaterials[0];
+                child.castShadow = false;
+                child.receiveShadow = false;
+            });
+        }
+
+        function kelvinToRGB(temp) {
+            temp = temp / 100;
+            let r, g, b;
+            if (temp <= 66) {
+                r = 255;
+                g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+                if (temp <= 19) {
+                    b = 0;
+                } else {
+                    b = 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+                }
+            } else {
+                r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+                g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+                b = 255;
+            }
+            return {
+                r: Math.max(0, Math.min(255, Math.round(r))),
+                g: Math.max(0, Math.min(255, Math.round(g))),
+                b: Math.max(0, Math.min(255, Math.round(b)))
+            };
+        }
+
+        function updateLightIntensity(value) {
+            const intensity = parseFloat(value);
+            document.getElementById('light-intensity-value').textContent = intensity.toFixed(1);
+            if (state.sceneLights.ambient) state.sceneLights.ambient.intensity = 0.9 * intensity;
+            state.sceneLights.directionals.forEach((light) => {
+                const base = light.userData.originalIntensity || 1;
+                light.intensity = base * intensity;
+            });
+        }
+
+        function updateLightTemperature(value) {
+            const temp = parseInt(value, 10);
+            document.getElementById('light-temperature-value').textContent = `${temp}K`;
+            const color = kelvinToRGB(temp);
+            state.sceneLights.directionals.forEach((light) => {
+                light.color.setRGB(color.r / 255, color.g / 255, color.b / 255);
+            });
+        }
+
+        function resizeRenderer() {
+            const w = viewer.clientWidth;
+            const h = viewer.clientHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            if (state.sceneMode === 'roam') {
+                updateRoam(delta);
+            } else {
+                controls.update();
+            }
+            renderer.render(scene, camera);
+        }
+
+        function toEntityName(baseName) {
+            const key = baseName || '实体';
+            state.entityNameCount[key] = (state.entityNameCount[key] || 0) + 1;
+            const n = state.entityNameCount[key];
+            return n === 1 ? key : `${key}${n}`;
+        }
+
+        function getTransformSnapshot(object3d) {
+            return {
+                position: [object3d.position.x, object3d.position.y, object3d.position.z],
+                rotation: [object3d.rotation.x, object3d.rotation.y, object3d.rotation.z],
+                scale: [object3d.scale.x, object3d.scale.y, object3d.scale.z]
+            };
+        }
+
+        function applyTransformSnapshot(object3d, transform) {
+            if (!transform) return;
+            const p = transform.position || [0, 0, 0];
+            const r = transform.rotation || [0, 0, 0];
+            const s = transform.scale || [1, 1, 1];
+            object3d.position.set(p[0], p[1], p[2]);
+            object3d.rotation.set(r[0], r[1], r[2]);
+            object3d.scale.set(s[0], s[1], s[2]);
+        }
+
+        function pushUndoAction(action) {
+            if (state.isApplyingUndo) return;
+            state.undoStack.push(action);
+            if (state.undoStack.length > 80) state.undoStack.shift();
+        }
+
+        function transformsEqual(a, b) {
+            return JSON.stringify(a) === JSON.stringify(b);
+        }
+
+        function getDominantScaleFactor(baseScale, targetScale) {
+            const ratios = ['x', 'y', 'z']
+                .map((axis) => {
+                    const base = baseScale[axis];
+                    const target = targetScale[axis];
+                    if (!Number.isFinite(base) || Math.abs(base) < 1e-6) return null;
+                    const ratio = target / base;
+                    if (!Number.isFinite(ratio) || ratio <= 0) return null;
+                    return ratio;
+                })
+                .filter((ratio) => ratio !== null);
+            if (!ratios.length) return 1;
+            return ratios.reduce((dominant, ratio) => (
+                Math.abs(ratio - 1) > Math.abs(dominant - 1) ? ratio : dominant
+            ), ratios[0]);
+        }
+
+        function undoLastAction() {
+            const action = state.undoStack.pop();
+            if (!action) return;
+            state.isApplyingUndo = true;
+            try {
+                if (action.type === 'add_entity') {
+                    removeEntity(action.payload.entityId, false);
+                } else if (action.type === 'remove_entity') {
+                    const p = action.payload;
+                    addEntityFromModel(
+                        { session_id: p.modelSessionId, name: p.name, file_url: p.modelFile },
+                        p.transform,
+                        p.name,
+                        p.entityId,
+                        false
+                    );
+                } else if (action.type === 'transform_entity') {
+                    const entity = getEntityById(action.payload.entityId);
+                    if (entity) {
+                        applyTransformSnapshot(entity.object3d, action.payload.before);
+                        updateTransformInputs();
+                        updateFloatingToolbarPosition();
+                    }
+                } else if (action.type === 'transform_entities') {
+                    (action.payload.items || []).forEach((item) => {
+                        const entity = getEntityById(item.entityId);
+                        if (!entity) return;
+                        applyTransformSnapshot(entity.object3d, item.before);
+                    });
+                    updateTransformInputs();
+                    updateFloatingToolbarPosition();
+                }
+            } finally {
+                state.isApplyingUndo = false;
+            }
+        }
+
+        function getEntityById(id) {
+            return state.entities.find((e) => e.id === id) || null;
+        }
+
+        function getSelectedEntities() {
+            return state.selectedEntityIds.map((id) => getEntityById(id)).filter(Boolean);
+        }
+
+        function setEntityOutline(entity, enabled) {
+            if (!entity || !entity.object3d) return;
+            entity.object3d.traverse((child) => {
+                if (!child.isMesh || !child.geometry) return;
+                if (enabled) {
+                    if (!child.userData.selectionOutline) {
+                        const edges = new THREE.EdgesGeometry(child.geometry, 20);
+                        const outline = new THREE.LineSegments(
+                            edges,
+                            new THREE.LineBasicMaterial({
+                                color: 0x4da3ff,
+                                transparent: true,
+                                opacity: 0.95,
+                                depthTest: false
+                            })
+                        );
+                        outline.renderOrder = 1000;
+                        outline.userData.isSelectionOutline = true;
+                        child.add(outline);
+                        child.userData.selectionOutline = outline;
+                    }
+                    child.userData.selectionOutline.visible = true;
+                } else if (child.userData.selectionOutline) {
+                    child.userData.selectionOutline.visible = false;
+                }
+            });
+        }
+
+        function updateSelectionOutlines() {
+            const selectedSet = new Set(state.selectedEntityIds);
+            state.entities.forEach((entity) => setEntityOutline(entity, selectedSet.has(entity.id)));
+        }
+
+        function getActiveTransformObject() {
+            if (state.selectedEntityIds.length > 1) return state.multiTransform.proxy;
+            const entity = getEntityById(state.selectedEntityId);
+            return entity ? entity.object3d : null;
+        }
+
+        function updateMultiTransformProxyFromSelection() {
+            const entities = getSelectedEntities();
+            if (entities.length < 2) return;
+            const center = new THREE.Vector3();
+            entities.forEach((entity) => {
+                const pos = new THREE.Vector3();
+                entity.object3d.getWorldPosition(pos);
+                center.add(pos);
+            });
+            center.multiplyScalar(1 / entities.length);
+            state.multiTransform.proxy.position.copy(center);
+            state.multiTransform.proxy.rotation.set(0, 0, 0);
+            state.multiTransform.proxy.scale.set(1, 1, 1);
+            state.multiTransform.proxy.updateMatrixWorld(true);
+        }
+
+        function applySelectionTransformAttachment() {
+            if (state.sceneMode !== 'edit' || !state.selectedEntityIds.length) {
+                transformControls.detach();
+                return;
+            }
+            if (state.selectedEntityIds.length === 1) {
+                const entity = getEntityById(state.selectedEntityId);
+                if (entity) transformControls.attach(entity.object3d);
+            } else {
+                updateMultiTransformProxyFromSelection();
+                transformControls.attach(state.multiTransform.proxy);
+            }
+        }
+
+        function setSelectedEntities(entityIds, primaryId = null) {
+            const uniq = [...new Set((entityIds || []).filter((id) => !!getEntityById(id)))];
+            state.selectedEntityIds = uniq;
+            state.selectedEntityId = uniq.length ? (primaryId && uniq.includes(primaryId) ? primaryId : uniq[0]) : null;
+            applySelectionTransformAttachment();
+            updateSelectionOutlines();
+            updateTransformInputs();
+            renderEntityList();
+            updateFloatingToolbarPosition();
+        }
+
+        function setSelectedEntity(entityId) {
+            setSelectedEntities(entityId ? [entityId] : [], entityId);
+        }
+
+        function beginTransformInteraction() {
+            state.multiTransform.active = state.selectedEntityIds.length > 1;
+            state.multiTransform.beforeMap = {};
+            if (!state.selectedEntityIds.length) return;
+            state.selectedEntityIds.forEach((entityId) => {
+                const entity = getEntityById(entityId);
+                if (!entity) return;
+                state.multiTransform.beforeMap[entityId] = getTransformSnapshot(entity.object3d);
+                if (state.selectedEntityIds.length === 1) {
+                    state.transformStartMap[entityId] = state.multiTransform.beforeMap[entityId];
+                }
+            });
+            if (state.multiTransform.active) {
+                state.multiTransform.proxy.updateMatrixWorld(true);
+                state.multiTransform.prevProxyMatrixWorld.copy(state.multiTransform.proxy.matrixWorld);
+            }
+        }
+
+        function applyMultiTransformDeltaFromProxy() {
+            if (!state.multiTransform.active) return;
+            const proxy = state.multiTransform.proxy;
+            proxy.updateMatrixWorld(true);
+            const delta = new THREE.Matrix4()
+                .copy(proxy.matrixWorld)
+                .multiply(new THREE.Matrix4().copy(state.multiTransform.prevProxyMatrixWorld).invert());
+            if (delta.equals(new THREE.Matrix4())) return;
+            state.selectedEntityIds.forEach((entityId) => {
+                const entity = getEntityById(entityId);
+                if (!entity) return;
+                const obj = entity.object3d;
+                obj.updateMatrixWorld(true);
+                const newWorld = new THREE.Matrix4().copy(delta).multiply(obj.matrixWorld);
+                const parentInv = obj.parent
+                    ? new THREE.Matrix4().copy(obj.parent.matrixWorld).invert()
+                    : new THREE.Matrix4().identity();
+                const newLocal = new THREE.Matrix4().copy(parentInv).multiply(newWorld);
+                newLocal.decompose(obj.position, obj.quaternion, obj.scale);
+                obj.updateMatrixWorld(true);
+            });
+            state.multiTransform.prevProxyMatrixWorld.copy(proxy.matrixWorld);
+        }
+
+        function finishTransformInteraction() {
+            const ids = [...state.selectedEntityIds];
+            if (!ids.length) return;
+            if (ids.length === 1) {
+                const entityId = ids[0];
+                const entity = getEntityById(entityId);
+                if (!entity) return;
+                const before = state.transformStartMap[entityId];
+                const after = getTransformSnapshot(entity.object3d);
+                delete state.transformStartMap[entityId];
+                if (!before || transformsEqual(before, after)) return;
+                pushUndoAction({
+                    type: 'transform_entity',
+                    payload: { entityId: entity.id, before, after }
+                });
+                state.pendingSelectionConfirmClick = true;
+                return;
+            }
+            const changedItems = ids.map((entityId) => {
+                const entity = getEntityById(entityId);
+                const before = state.multiTransform.beforeMap[entityId];
+                if (!entity || !before) return null;
+                const after = getTransformSnapshot(entity.object3d);
+                if (transformsEqual(before, after)) return null;
+                return { entityId, before, after };
+            }).filter(Boolean);
+            if (changedItems.length) {
+                pushUndoAction({
+                    type: 'transform_entities',
+                    payload: { items: changedItems }
+                });
+                state.pendingSelectionConfirmClick = true;
+            }
+            state.multiTransform.beforeMap = {};
+            state.multiTransform.active = false;
+        }
+
+        function setTransformMode(mode) {
+            transformControls.setMode(mode);
+            document.getElementById('toolMoveBtn').classList.toggle('active', mode === 'translate');
+            document.getElementById('toolRotateBtn').classList.toggle('active', mode === 'rotate');
+            document.getElementById('toolScaleBtn').classList.toggle('active', mode === 'scale');
+            applyTransformAxisConstraint(state.transformAxisConstraint);
+        }
+
+        function applyTransformAxisConstraint(axis) {
+            const normalizedAxis = axis ? axis.toLowerCase() : null;
+            state.transformAxisConstraint = ['x', 'y', 'z'].includes(normalizedAxis) ? normalizedAxis : null;
+            if (state.transformAxisConstraint) {
+                // 轴约束按世界坐标生效，行为更接近 Blender。
+                transformControls.setSpace('world');
+            }
+            transformControls.showX = !state.transformAxisConstraint || state.transformAxisConstraint === 'x';
+            transformControls.showY = !state.transformAxisConstraint || state.transformAxisConstraint === 'y';
+            transformControls.showZ = !state.transformAxisConstraint || state.transformAxisConstraint === 'z';
+        }
+
+        function getBlenderAxisWorldVector(axis) {
+            // Blender 风格轴语义：XY 在地面，Z 向上。
+            // three.js 场景是 Y-up，因此映射为：
+            // X -> world X, Y -> world Z, Z -> world Y(up)
+            if (axis === 'x') return new THREE.Vector3(1, 0, 0);
+            if (axis === 'y') return new THREE.Vector3(0, 0, 1);
+            if (axis === 'z') return new THREE.Vector3(0, 1, 0);
+            return null;
+        }
+
+        function getBlenderAxisScaleKey(axis) {
+            if (axis === 'x') return 'x';
+            if (axis === 'y') return 'z';
+            if (axis === 'z') return 'y';
+            return null;
+        }
+
+        function refreshTransformHint() {
+            if (state.sceneMode === 'roam') {
+                modeHint.textContent = 'WASD/方向键移动，Space 上升，C 下降；鼠标转动，点击画面锁定指针，Esc 解锁';
+                return;
+            }
+            if (!state.modalTransform.active) {
+                modeHint.textContent = '';
+                return;
+            }
+            const modeMap = { translate: '移动', rotate: '旋转', scale: '缩放' };
+            const axisMap = { x: 'X(地面)', y: 'Y(地面)', z: 'Z(向上)' };
+            const modeText = modeMap[state.modalTransform.mode] || '变换';
+            const axisText = state.modalTransform.axis ? ` | 轴: ${axisMap[state.modalTransform.axis]}` : ' | 自由轴';
+            modeHint.textContent = `${modeText}中（鼠标控制）${axisText} | 左键确认，右键/Esc 取消`;
+        }
+
+        function cancelModalTransform() {
+            if (!state.modalTransform.active) return;
+            const entity = getEntityById(state.modalTransform.entityId);
+            if (entity && state.modalTransform.before) {
+                applyTransformSnapshot(entity.object3d, state.modalTransform.before);
+                updateTransformInputs();
+                updateFloatingToolbarPosition();
+            }
+            state.modalTransform.active = false;
+            state.modalTransform.mode = null;
+            state.modalTransform.axis = null;
+            state.modalTransform.entityId = null;
+            state.modalTransform.before = null;
+            controls.enabled = true;
+            refreshTransformHint();
+            state.pendingSelectionConfirmClick = true;
+        }
+
+        function confirmModalTransform() {
+            if (!state.modalTransform.active) return;
+            const entity = getEntityById(state.modalTransform.entityId);
+            const before = state.modalTransform.before;
+            if (entity && before) {
+                const after = getTransformSnapshot(entity.object3d);
+                if (!transformsEqual(before, after)) {
+                    pushUndoAction({
+                        type: 'transform_entity',
+                        payload: { entityId: entity.id, before, after }
+                    });
+                }
+            }
+            state.modalTransform.active = false;
+            state.modalTransform.mode = null;
+            state.modalTransform.axis = null;
+            state.modalTransform.entityId = null;
+            state.modalTransform.before = null;
+            controls.enabled = true;
+            refreshTransformHint();
+            state.pendingSelectionConfirmClick = true;
+        }
+
+        function startModalTransform(mode, event) {
+            if (state.sceneMode !== 'edit') return;
+            const entity = getEntityById(state.selectedEntityId);
+            if (!entity) return;
+            state.modalTransform.active = true;
+            state.modalTransform.mode = mode;
+            state.modalTransform.axis = state.transformAxisConstraint;
+            state.modalTransform.entityId = entity.id;
+            const mouseX = Number.isFinite(event.clientX) && event.clientX > 0 ? event.clientX : state.mousePosition.x;
+            const mouseY = Number.isFinite(event.clientY) && event.clientY > 0 ? event.clientY : state.mousePosition.y;
+            state.modalTransform.startMouse = { x: mouseX, y: mouseY };
+            state.modalTransform.lastMouse = { x: mouseX, y: mouseY };
+            state.modalTransform.before = getTransformSnapshot(entity.object3d);
+            controls.enabled = false;
+            refreshTransformHint();
+        }
+
+        function applyModalTransformFromMouse(event) {
+            if (!state.modalTransform.active) return;
+            const entity = getEntityById(state.modalTransform.entityId);
+            if (!entity) {
+                cancelModalTransform();
+                return;
+            }
+            const obj = entity.object3d;
+            const mode = state.modalTransform.mode;
+            const axis = state.modalTransform.axis;
+            const dx = event.clientX - state.modalTransform.lastMouse.x;
+            const dy = event.clientY - state.modalTransform.lastMouse.y;
+            state.modalTransform.lastMouse = { x: event.clientX, y: event.clientY };
+
+            if (mode === 'translate') {
+                const moveAmountX = dx * 0.01;
+                const moveAmountY = -dy * 0.01;
+                if (axis) {
+                    const axisVec = getBlenderAxisWorldVector(axis);
+                    const amount = axis === 'z' ? moveAmountY : moveAmountX;
+                    obj.position.addScaledVector(axisVec, amount);
+                } else {
+                    const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                    const camForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    camRight.y = 0;
+                    camForward.y = 0;
+                    if (camRight.lengthSq() > 1e-8) camRight.normalize();
+                    if (camForward.lengthSq() > 1e-8) camForward.normalize();
+                    obj.position.addScaledVector(camRight, moveAmountX);
+                    obj.position.addScaledVector(camForward, moveAmountY);
+                }
+            } else if (mode === 'rotate') {
+                const rotAmount = (dx - dy) * 0.01;
+                if (axis) {
+                    const axisVec = getBlenderAxisWorldVector(axis);
+                    obj.rotateOnWorldAxis(axisVec, rotAmount);
+                } else {
+                    obj.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), rotAmount);
+                }
+            } else if (mode === 'scale') {
+                const scaleDelta = 1 + (dx - dy) * 0.005;
+                const factor = Math.max(0.01, scaleDelta);
+                if (axis) {
+                    const key = getBlenderAxisScaleKey(axis);
+                    obj.scale[key] = Math.max(0.01, obj.scale[key] * factor);
+                } else {
+                    obj.scale.set(
+                        Math.max(0.01, obj.scale.x * factor),
+                        Math.max(0.01, obj.scale.y * factor),
+                        Math.max(0.01, obj.scale.z * factor)
+                    );
+                }
+            }
+            updateTransformInputs();
+            updateFloatingToolbarPosition();
+        }
+
+        function updateFloatingToolbarPosition() {
+            // 悬浮按钮已移除，保留函数作为兼容空实现。
+        }
+
+        function renderEntityList() {
+            entityList.innerHTML = '';
+            state.entities.forEach((entity) => {
+                const row = document.createElement('div');
+                row.className = 'entity-row';
+                const name = document.createElement('div');
+                name.className = 'entity-name';
+                name.textContent = entity.name;
+                name.style.color = state.selectedEntityIds.includes(entity.id) ? '#2b63c6' : '#111111';
+                name.style.cursor = 'pointer';
+                name.onclick = () => setSelectedEntities([entity.id], entity.id);
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn small';
+                delBtn.textContent = '删除';
+                delBtn.onclick = () => removeEntity(entity.id);
+                row.appendChild(name);
+                row.appendChild(delBtn);
+                entityList.appendChild(row);
+            });
+        }
+
+        function removeEntity(entityId, recordHistory = true) {
+            const idx = state.entities.findIndex((e) => e.id === entityId);
+            if (idx < 0) return;
+            const [entity] = state.entities.splice(idx, 1);
+            if (recordHistory) {
+                pushUndoAction({
+                    type: 'remove_entity',
+                    payload: {
+                        entityId: entity.id,
+                        name: entity.name,
+                        modelSessionId: entity.modelSessionId,
+                        modelFile: entity.modelFile,
+                        transform: getTransformSnapshot(entity.object3d)
+                    }
+                });
+            }
+            scene.remove(entity.object3d);
+            if (state.selectedEntityIds.includes(entityId)) {
+                setSelectedEntities(state.selectedEntityIds.filter((id) => id !== entityId));
+            }
+            renderEntityList();
+        }
+
+        function updateTransformInputs() {
+            const entity = getEntityById(state.selectedEntityId);
+            const ids = ['posX','posY','posZ','rotX','rotY','rotZ','scaleX','scaleY','scaleZ'];
+            if (!entity || state.selectedEntityIds.length > 1) {
+                ids.forEach((id) => document.getElementById(id).value = '');
+                return;
+            }
+            const o = entity.object3d;
+            document.getElementById('posX').value = o.position.x.toFixed(2);
+            document.getElementById('posY').value = o.position.y.toFixed(2);
+            document.getElementById('posZ').value = o.position.z.toFixed(2);
+            document.getElementById('rotX').value = (o.rotation.x * 180 / Math.PI).toFixed(1);
+            document.getElementById('rotY').value = (o.rotation.y * 180 / Math.PI).toFixed(1);
+            document.getElementById('rotZ').value = (o.rotation.z * 180 / Math.PI).toFixed(1);
+            document.getElementById('scaleX').value = o.scale.x.toFixed(2);
+            document.getElementById('scaleY').value = o.scale.y.toFixed(2);
+            document.getElementById('scaleZ').value = o.scale.z.toFixed(2);
+        }
+
+        function applyTransformFromInputs() {
+            const entity = getEntityById(state.selectedEntityId);
+            if (!entity || state.selectedEntityIds.length > 1) return;
+            const o = entity.object3d;
+            const before = getTransformSnapshot(o);
+            const n = (id, fallback) => {
+                const v = parseFloat(document.getElementById(id).value);
+                return Number.isFinite(v) ? v : fallback;
+            };
+            o.position.set(n('posX', o.position.x), n('posY', o.position.y), n('posZ', o.position.z));
+            o.rotation.set(
+                n('rotX', o.rotation.x * 180 / Math.PI) * Math.PI / 180,
+                n('rotY', o.rotation.y * 180 / Math.PI) * Math.PI / 180,
+                n('rotZ', o.rotation.z * 180 / Math.PI) * Math.PI / 180
+            );
+            const currentScale = o.scale.clone();
+            const desiredScale = new THREE.Vector3(
+                Math.max(0.01, n('scaleX', o.scale.x)),
+                Math.max(0.01, n('scaleY', o.scale.y)),
+                Math.max(0.01, n('scaleZ', o.scale.z))
+            );
+            const factor = getDominantScaleFactor(currentScale, desiredScale);
+            o.scale.set(
+                Math.max(0.01, currentScale.x * factor),
+                Math.max(0.01, currentScale.y * factor),
+                Math.max(0.01, currentScale.z * factor)
+            );
+            const after = getTransformSnapshot(o);
+            if (!transformsEqual(before, after)) {
+                pushUndoAction({
+                    type: 'transform_entity',
+                    payload: { entityId: entity.id, before, after }
+                });
+            }
+            updateTransformInputs();
+        }
+
+        async function fetchModels() {
+            const [itemRes, sceneRes] = await Promise.all([
+                fetch('/api/database/models?category=item&limit=200'),
+                fetch('/api/database/models?category=scene&limit=200')
+            ]);
+            const itemData = await itemRes.json();
+            const sceneData = await sceneRes.json();
+            const itemModels = itemData.models || [];
+            const sceneModels = sceneData.models || [];
+            state.availableModels = itemModels;
+
+            // 基础场景仅加载场景模型
+            state.baseScenes = sceneModels;
+            renderModelList();
+            renderBaseSceneOptions();
+            preloadModelThumbnails();
+        }
+
+        function renderModelList() {
+            const keyword = document.getElementById('modelSearchInput').value.trim().toLowerCase();
+            modelList.innerHTML = '';
+            state.availableModels
+                .filter(m => (m.name || '').toLowerCase().includes(keyword))
+                .forEach((model) => {
+                    const card = document.createElement('div');
+                    card.className = 'model-card';
+                    const thumbSrc = state.thumbnailMap[model.session_id] || '/static/icon_no_bg.png';
+                    card.innerHTML = `
+                        <div class="model-thumb-wrap">
+                            <img class="model-thumb" src="${thumbSrc}" alt="thumb">
+                        </div>
+                        <div class="model-name">${model.name || model.session_id}</div>
+                    `;
+                    card.onclick = () => addEntityFromModel(model);
+                    modelList.appendChild(card);
+                });
+        }
+
+        async function resolveModelThumbnail(model) {
+            try {
+                const sessionRes = await fetch(`/api/session/${encodeURIComponent(model.session_id)}`);
+                const sessionData = await sessionRes.json();
+                const files = sessionData.files || [];
+
+                // 优先使用渲染后的静止图，例如 *_picture.png
+                const imageFile = files.find((f) => f.type === 'image' || /\.(png|jpg|jpeg|webp)$/i.test(f.filename));
+                if (imageFile) {
+                    return `/api/file/${encodeURIComponent(imageFile.path || imageFile.filename)}`;
+                }
+
+                // 无现成图片时，前端离屏渲染一个静态缩略图
+                const renderedThumb = await renderModelPreview(model);
+                return renderedThumb || '/static/icon_no_bg.png';
+            } catch (e) {
+                console.error('resolveModelThumbnail failed:', e);
+                const renderedThumb = await renderModelPreview(model);
+                return renderedThumb || '/static/icon_no_bg.png';
+            }
+        }
+
+        async function renderModelPreview(model) {
+            return new Promise((resolve) => {
+                const url = `/api/file/${encodeURIComponent(model.file_url)}`;
+                gltfLoader.load(url, (gltf) => {
+                    try {
+                        const previewScene = new THREE.Scene();
+                        previewScene.background = new THREE.Color(0xf6f6f6);
+                        const ambientLight = new THREE.AmbientLight(0xfffef7, 5);
+                        previewScene.add(ambientLight);
+                        const directionalLight1 = new THREE.DirectionalLight(0xfffef7, 4);
+                        directionalLight1.position.set(5, 5, 5);
+                        previewScene.add(directionalLight1);
+                        const directionalLight2 = new THREE.DirectionalLight(0xfffef7, 2);
+                        directionalLight2.position.set(-5, 3, -5);
+                        previewScene.add(directionalLight2);
+
+                        const modelObj = gltf.scene;
+                        previewScene.add(modelObj);
+
+                        const box = new THREE.Box3().setFromObject(modelObj);
+                        const size = box.getSize(new THREE.Vector3());
+                        const center = box.getCenter(new THREE.Vector3());
+                        modelObj.position.sub(center);
+                        modelObj.position.y -= box.min.y - center.y;
+
+                        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+                        const previewCamera = new THREE.PerspectiveCamera(45, 240 / 160, 0.1, 1000);
+                        previewCamera.position.set(maxDim * 1.2, maxDim * 0.9, maxDim * 1.2);
+                        previewCamera.lookAt(0, maxDim * 0.25, 0);
+
+                        previewRenderer.render(previewScene, previewCamera);
+                        resolve(previewRenderer.domElement.toDataURL('image/png'));
+                    } catch (err) {
+                        console.error('renderModelPreview failed in render:', err);
+                        resolve(null);
+                    }
+                }, undefined, (err) => {
+                    console.error('renderModelPreview failed in load:', err);
+                    resolve(null);
+                });
+            });
+        }
+
+        async function preloadModelThumbnails() {
+            const updates = await Promise.all(
+                state.availableModels.map(async (model) => ({
+                    sessionId: model.session_id,
+                    thumb: await resolveModelThumbnail(model)
+                }))
+            );
+            updates.forEach((item) => {
+                state.thumbnailMap[item.sessionId] = item.thumb;
+            });
+            renderModelList();
+        }
+
+        function renderBaseSceneOptions() {
+            baseSceneSelect.innerHTML = '<option value="">选择基础场景</option>';
+            state.baseScenes.forEach((s) => {
+                const option = document.createElement('option');
+                option.value = s.id;
+                option.textContent = `[场景] ${s.name || s.session_id}`;
+                option.dataset.file = s.file_url;
+                baseSceneSelect.appendChild(option);
+            });
+        }
+
+        function addEntityFromModel(model, transform = null, explicitName = null, forcedEntityId = null, recordHistory = true, autoSelect = true) {
+            return new Promise((resolve, reject) => {
+                const url = `/api/file/${encodeURIComponent(model.file_url)}`;
+                gltfLoader.load(url, (gltf) => {
+                    const obj = gltf.scene;
+                    configureModelMaterials(obj);
+                    obj.position.set(0, 0, 0);
+                    obj.rotation.set(0, 0, 0);
+                    obj.scale.set(1, 1, 1);
+                    if (transform) {
+                        applyTransformSnapshot(obj, transform);
+                    } else {
+                        obj.position.y = 0;
+                    }
+                    scene.add(obj);
+
+                    const entityId = forcedEntityId || `${Date.now()}_${Math.random()}`;
+                    const entityName = explicitName || toEntityName(model.name || '实体');
+                    obj.userData.entityId = entityId;
+                    state.entities.push({
+                        id: entityId,
+                        name: entityName,
+                        modelSessionId: model.session_id,
+                        modelFile: model.file_url,
+                        object3d: obj
+                    });
+                    if (recordHistory) {
+                        pushUndoAction({
+                            type: 'add_entity',
+                            payload: { entityId }
+                        });
+                    }
+                    renderEntityList();
+                    if (autoSelect) setSelectedEntity(entityId);
+                    resolve(entityId);
+                }, undefined, (err) => {
+                    alert(`模型加载失败: ${model.name || model.session_id}`);
+                    console.error(err);
+                    reject(err);
+                });
+            });
+        }
+
+        async function duplicateSelectedEntitiesAndStartMove() {
+            if (state.sceneMode !== 'edit') return;
+            const sourceEntities = getSelectedEntities();
+            if (!sourceEntities.length) return;
+            const newIds = [];
+            for (const source of sourceEntities) {
+                const transform = getTransformSnapshot(source.object3d);
+                const model = {
+                    session_id: source.modelSessionId,
+                    file_url: source.modelFile,
+                    name: source.name
+                };
+                const duplicatedName = toEntityName(`${source.name}_副本`);
+                try {
+                    const newId = await addEntityFromModel(
+                        model,
+                        transform,
+                        duplicatedName,
+                        null,
+                        true,
+                        false
+                    );
+                    newIds.push(newId);
+                } catch (e) {
+                    console.error('duplicate entity failed:', e);
+                }
+            }
+            if (!newIds.length) return;
+            setSelectedEntities(newIds, newIds[0]);
+            setTransformMode('translate');
+            applyTransformAxisConstraint(null);
+            startModalTransform('translate', {
+                clientX: state.mousePosition.x,
+                clientY: state.mousePosition.y
+            });
+        }
+
+        function loadBaseScene(fileUrl) {
+            if (!fileUrl) return;
+            const url = `/api/file/${encodeURIComponent(fileUrl)}`;
+            gltfLoader.load(url, (gltf) => {
+                if (state.baseSceneObject) scene.remove(state.baseSceneObject);
+                state.baseSceneObject = gltf.scene;
+                configureModelMaterials(state.baseSceneObject);
+                state.baseSceneObject.traverse((child) => child.userData.isBaseScene = true);
+                scene.add(state.baseSceneObject);
+            }, undefined, (err) => {
+                alert('基础场景加载失败');
+                console.error(err);
+            });
+        }
+
+        function exportSceneData(sceneName) {
+            return {
+                name: sceneName,
+                baseSceneFile: state.baseSceneObject ? (baseSceneSelect.selectedOptions[0]?.dataset.file || '') : '',
+                entities: state.entities.map((e) => ({
+                    name: e.name,
+                    modelSessionId: e.modelSessionId,
+                    modelFile: e.modelFile,
+                    transform: {
+                        position: [e.object3d.position.x, e.object3d.position.y, e.object3d.position.z],
+                        rotation: [e.object3d.rotation.x, e.object3d.rotation.y, e.object3d.rotation.z],
+                        scale: [e.object3d.scale.x, e.object3d.scale.y, e.object3d.scale.z]
+                    }
+                }))
+            };
+        }
+
+        async function saveScene() {
+            const name = prompt('请输入场景名', `scene_${new Date().toISOString().slice(0,19).replace(/[:T]/g, '_')}`);
+            if (!name) return;
+            const payload = { name, scene: exportSceneData(name) };
+            const res = await fetch('/api/space/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status !== 'success') {
+                alert(`保存失败: ${data.message || '未知错误'}`);
+                return;
+            }
+            await fetchSavedScenes();
+            alert('场景已保存');
+        }
+
+        async function fetchSavedScenes() {
+            const res = await fetch('/api/space/saved-scenes');
+            const data = await res.json();
+            const scenes = data.scenes || [];
+            savedSceneList.innerHTML = '';
+            scenes.forEach((s) => {
+                const row = document.createElement('div');
+                row.className = 'scene-row';
+                row.innerHTML = `
+                    <div class="entity-name">${s.name}</div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn small">加载</button>
+                        <button class="btn small" data-action="delete">删除</button>
+                    </div>
+                `;
+                const loadBtn = row.querySelector('button');
+                const deleteBtn = row.querySelector('button[data-action="delete"]');
+                loadBtn.onclick = () => loadSavedSceneFile(s.filename);
+                deleteBtn.onclick = () => deleteSavedSceneFile(s.filename, s.name);
+                savedSceneList.appendChild(row);
+            });
+        }
+
+        async function deleteSavedSceneFile(filename, sceneName) {
+            const ok = confirm(`确认删除场景 "${sceneName}" 吗？`);
+            if (!ok) return;
+            const res = await fetch(`/api/space/delete/${encodeURIComponent(filename)}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.status !== 'success') {
+                alert(`删除失败: ${data.message || '未知错误'}`);
+                return;
+            }
+            await fetchSavedScenes();
+        }
+
+        function clearCurrentEntities() {
+            state.entities.forEach((e) => scene.remove(e.object3d));
+            state.entities = [];
+            state.selectedEntityId = null;
+            state.selectedEntityIds = [];
+            transformControls.detach();
+            renderEntityList();
+            updateTransformInputs();
+        }
+
+        async function loadSavedSceneFile(filename) {
+            const res = await fetch(`/api/space/load/${encodeURIComponent(filename)}`);
+            const data = await res.json();
+            if (data.status !== 'success') {
+                alert(`加载失败: ${data.message || '未知错误'}`);
+                return;
+            }
+            const saved = data.data?.scene || {};
+            clearCurrentEntities();
+            if (state.baseSceneObject) {
+                scene.remove(state.baseSceneObject);
+                state.baseSceneObject = null;
+            }
+            if (saved.baseSceneFile) {
+                loadBaseScene(saved.baseSceneFile);
+                [...baseSceneSelect.options].forEach((op) => {
+                    if (op.dataset.file === saved.baseSceneFile) baseSceneSelect.value = op.value;
+                });
+            }
+            (saved.entities || []).forEach((entityData) => {
+                const model = {
+                    session_id: entityData.modelSessionId,
+                    name: entityData.name,
+                    file_url: entityData.modelFile
+                };
+                addEntityFromModel(model, entityData.transform, entityData.name);
+            });
+        }
+
+        function syncOrbitTargetFromCamera() {
+            const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            controls.target.copy(camera.position).add(dir.multiplyScalar(8));
+            controls.update();
+        }
+
+        function refreshModeUi() {
+            const m = state.sceneMode;
+            modeBtn.textContent = m === 'edit' ? '编辑模式' : m === 'view' ? '阅览模式' : '漫游模式';
+            modeBtn.classList.toggle('active', m === 'edit');
+            refreshTransformHint();
+        }
+
+        function setSceneMode(mode) {
+            const prev = state.sceneMode;
+            if (prev === mode) return;
+            state.sceneMode = mode;
+
+            if (prev === 'roam' && mode !== 'roam') {
+                roam.keys = {};
+                if (document.pointerLockElement === renderer.domElement) {
+                    document.exitPointerLock();
+                }
+                controls.enabled = true;
+                camera.rotation.order = 'XYZ';
+                syncOrbitTargetFromCamera();
+            }
+
+            if (mode === 'roam') {
+                if (state.modalTransform.active) cancelModalTransform();
+                roam.keys = {};
+                controls.enabled = false;
+                transformControls.detach();
+                camera.rotation.order = 'YXZ';
+                const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+                roam.yaw = euler.y;
+                roam.pitch = euler.x;
+                const gy = sampleGroundY(camera.position.x, camera.position.z);
+                camera.position.y = gy + roam.eyeHeight;
+            } else {
+                if (mode === 'edit' && state.selectedEntityIds.length) {
+                    applySelectionTransformAttachment();
+                    updateFloatingToolbarPosition();
+                } else {
+                    transformControls.detach();
+                }
+            }
+            refreshModeUi();
+        }
+
+        function cycleSceneMode() {
+            const order = ['edit', 'view', 'roam'];
+            const i = order.indexOf(state.sceneMode);
+            setSceneMode(order[(i + 1) % order.length]);
+        }
+
+        function updateOrbitMouseBindings() {
+            controls.mouseButtons.MIDDLE = state.isShiftPressed ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
+            controls.enablePan = !!state.isShiftPressed;
+        }
+
+        function pickEntityIdAtScreenPoint(clientX, clientY) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const meshes = [];
+            state.entities.forEach((e) => e.object3d.traverse((c) => { if (c.isMesh) meshes.push(c); }));
+            const hit = raycaster.intersectObjects(meshes, true)[0];
+            if (!hit) return null;
+            let parent = hit.object;
+            while (parent && !parent.userData.entityId) parent = parent.parent;
+            return parent && parent.userData.entityId ? parent.userData.entityId : null;
+        }
+
+        function toViewerCoords(clientX, clientY) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top,
+                width: rect.width,
+                height: rect.height
+            };
+        }
+
+        function updateSelectionBoxVisual(x1, y1, x2, y2) {
+            // selection-box 为 position:fixed（相对视口），x1/y1/x2/y2 为 canvas 内局部坐标，需加上画布在视口中的偏移
+            const crect = renderer.domElement.getBoundingClientRect();
+            const left = Math.min(x1, x2) + crect.left;
+            const top = Math.min(y1, y2) + crect.top;
+            const width = Math.abs(x2 - x1);
+            const height = Math.abs(y2 - y1);
+            selectionBox.style.display = 'block';
+            selectionBox.style.left = `${left}px`;
+            selectionBox.style.top = `${top}px`;
+            selectionBox.style.width = `${width}px`;
+            selectionBox.style.height = `${height}px`;
+        }
+
+        function finishBoxSelect(clientX, clientY, additive = false) {
+            const dragDistance = Math.hypot(
+                clientX - state.boxSelect.pointerDownX,
+                clientY - state.boxSelect.pointerDownY
+            );
+            if (dragDistance < 4) {
+                if (state.pendingSelectionConfirmClick) {
+                    state.pendingSelectionConfirmClick = false;
+                    return;
+                }
+                if (!additive) setSelectedEntities([], null);
+                return;
+            }
+            const x1 = state.boxSelect.startX;
+            const y1 = state.boxSelect.startY;
+            const x2 = clientX;
+            const y2 = clientY;
+            const minX = Math.min(x1, x2);
+            const maxX = Math.max(x1, x2);
+            const minY = Math.min(y1, y2);
+            const maxY = Math.max(y1, y2);
+            const rect = renderer.domElement.getBoundingClientRect();
+            const picked = [];
+            state.entities.forEach((entity) => {
+                const worldPos = new THREE.Vector3();
+                entity.object3d.getWorldPosition(worldPos);
+                worldPos.project(camera);
+                const sx = (worldPos.x * 0.5 + 0.5) * rect.width;
+                const sy = (-worldPos.y * 0.5 + 0.5) * rect.height;
+                if (sx >= minX && sx <= maxX && sy >= minY && sy <= maxY) {
+                    picked.push(entity.id);
+                }
+            });
+            const nextIds = additive
+                ? [...new Set([...state.selectedEntityIds, ...picked])]
+                : picked;
+            setSelectedEntities(nextIds, nextIds[0] || null);
+        }
+
+        renderer.domElement.addEventListener('pointerdown', (event) => {
+            if (state.sceneMode !== 'edit') return;
+            if (state.isTransformInteracting || transformControls.dragging || !!transformControls.axis) return;
+            if (event.button !== 0) return;
+            const hitEntityId = pickEntityIdAtScreenPoint(event.clientX, event.clientY);
+            if (hitEntityId) {
+                state.pendingSelectionConfirmClick = false;
+                if (event.shiftKey) {
+                    const ids = state.selectedEntityIds.includes(hitEntityId)
+                        ? state.selectedEntityIds.filter((id) => id !== hitEntityId)
+                        : [...state.selectedEntityIds, hitEntityId];
+                    setSelectedEntities(ids, hitEntityId);
+                } else {
+                    setSelectedEntities([hitEntityId], hitEntityId);
+                }
+                return;
+            }
+            const pointer = toViewerCoords(event.clientX, event.clientY);
+            state.boxSelect.active = true;
+            state.boxSelect.startX = pointer.x;
+            state.boxSelect.startY = pointer.y;
+            state.boxSelect.pointerDownX = pointer.x;
+            state.boxSelect.pointerDownY = pointer.y;
+            updateSelectionBoxVisual(pointer.x, pointer.y, pointer.x, pointer.y);
+        });
+
+        window.addEventListener('pointermove', (event) => {
+            if (!state.boxSelect.active) return;
+            const pointer = toViewerCoords(event.clientX, event.clientY);
+            updateSelectionBoxVisual(state.boxSelect.startX, state.boxSelect.startY, pointer.x, pointer.y);
+        });
+
+        window.addEventListener('pointerup', (event) => {
+            if (!state.boxSelect.active) return;
+            const pointer = toViewerCoords(event.clientX, event.clientY);
+            finishBoxSelect(pointer.x, pointer.y, event.shiftKey);
+            state.boxSelect.active = false;
+            selectionBox.style.display = 'none';
+        });
+
+        document.getElementById('backBtn').onclick = () => window.history.back();
+        document.getElementById('menuBtn').onclick = () => sidebar.classList.toggle('open');
+        document.getElementById('modelSearchInput').oninput = renderModelList;
+        document.getElementById('refreshModelsBtn').onclick = fetchModels;
+        document.getElementById('saveBtn').onclick = saveScene;
+        document.getElementById('undoBtn').onclick = undoLastAction;
+        document.getElementById('modeBtn').onclick = () => cycleSceneMode();
+        document.getElementById('toolMoveBtn').onclick = () => setTransformMode('translate');
+        document.getElementById('toolRotateBtn').onclick = () => setTransformMode('rotate');
+        document.getElementById('toolScaleBtn').onclick = () => setTransformMode('scale');
+        document.getElementById('light-intensity').oninput = (e) => updateLightIntensity(e.target.value);
+        document.getElementById('light-temperature').oninput = (e) => updateLightTemperature(e.target.value);
+        document.getElementById('applyTransformBtn').onclick = applyTransformFromInputs;
+        baseSceneSelect.onchange = () => loadBaseScene(baseSceneSelect.selectedOptions[0]?.dataset.file || '');
+
+        function isTypingTarget(target) {
+            return target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
+        }
+
+        const ROAM_MOVE_CODES = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space', 'KeyC']);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+                state.isShiftPressed = true;
+                updateOrbitMouseBindings();
+            }
+            if (state.sceneMode === 'roam' && !isTypingTarget(event.target) && ROAM_MOVE_CODES.has(event.code)) {
+                roam.keys[event.code] = true;
+                event.preventDefault();
+            }
+            const target = event.target;
+            if (isTypingTarget(target)) return;
+            if (state.sceneMode === 'edit' && !(event.ctrlKey || event.metaKey || event.altKey)) {
+                const key = event.key.toLowerCase();
+                if (event.shiftKey && key === 'd') {
+                    duplicateSelectedEntitiesAndStartMove();
+                    event.preventDefault();
+                } else if (key === 'g') {
+                    setTransformMode('translate');
+                    applyTransformAxisConstraint(null);
+                    startModalTransform('translate', event);
+                    event.preventDefault();
+                } else if (key === 'r') {
+                    setTransformMode('rotate');
+                    applyTransformAxisConstraint(null);
+                    startModalTransform('rotate', event);
+                    event.preventDefault();
+                } else if (key === 's') {
+                    setTransformMode('scale');
+                    applyTransformAxisConstraint(null);
+                    startModalTransform('scale', event);
+                    event.preventDefault();
+                } else if (key === 'x' || key === 'y' || key === 'z') {
+                    const currentAxis = state.modalTransform.active ? state.modalTransform.axis : state.transformAxisConstraint;
+                    const nextAxis = currentAxis === key ? null : key;
+                    if (state.modalTransform.active) {
+                        state.modalTransform.axis = nextAxis;
+                        refreshTransformHint();
+                    }
+                    applyTransformAxisConstraint(nextAxis);
+                    event.preventDefault();
+                } else if (event.key === 'Escape') {
+                    if (state.modalTransform.active) {
+                        cancelModalTransform();
+                    } else if (state.transformAxisConstraint) {
+                        applyTransformAxisConstraint(null);
+                    }
+                }
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+                event.preventDefault();
+                undoLastAction();
+                return;
+            }
+            if (event.key === 'Delete' || event.key === 'Backspace') {
+                if (!state.selectedEntityIds.length) return;
+                event.preventDefault();
+                [...state.selectedEntityIds].forEach((entityId) => removeEntity(entityId));
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+                state.isShiftPressed = false;
+                updateOrbitMouseBindings();
+            }
+            if (state.sceneMode === 'roam' && ROAM_MOVE_CODES.has(event.code)) {
+                roam.keys[event.code] = false;
+            }
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            state.mousePosition.x = event.clientX;
+            state.mousePosition.y = event.clientY;
+            if (state.modalTransform.active) {
+                applyModalTransformFromMouse(event);
+                return;
+            }
+            if (state.sceneMode !== 'roam' || document.pointerLockElement !== renderer.domElement) return;
+            roam.yaw -= event.movementX * roam.lookSensitivity;
+            roam.pitch -= event.movementY * roam.lookSensitivity;
+            const lim = Math.PI / 2 - 0.08;
+            roam.pitch = Math.max(-lim, Math.min(lim, roam.pitch));
+        });
+
+        document.addEventListener('mousedown', (event) => {
+            if (!state.modalTransform.active) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.button === 0) {
+                confirmModalTransform();
+            } else if (event.button === 2) {
+                cancelModalTransform();
+            }
+        }, true);
+
+        document.addEventListener('contextmenu', (event) => {
+            if (!state.modalTransform.active) return;
+            event.preventDefault();
+        });
+
+        renderer.domElement.addEventListener('click', () => {
+            if (state.sceneMode === 'roam' && document.pointerLockElement !== renderer.domElement) {
+                renderer.domElement.requestPointerLock();
+            }
+        });
+
+        function setBottomBarHeight(heightPx) {
+            const clamped = Math.min(MAX_BOTTOM_BAR_HEIGHT, Math.max(MIN_BOTTOM_BAR_HEIGHT, Math.round(heightPx)));
+            document.documentElement.style.setProperty('--bottom-bar-height', `${clamped}px`);
+            const scale = Math.max(0.75, Math.min(1.8, clamped / 168));
+            document.documentElement.style.setProperty('--model-card-scale', `${scale}`);
+            resizeRenderer();
+            updateFloatingToolbarPosition();
+        }
+
+        function initBottomBarResizer() {
+            let resizing = false;
+            let activePointerId = null;
+            const onPointerMove = (event) => {
+                if (!resizing) return;
+                const newHeight = window.innerHeight - event.clientY;
+                setBottomBarHeight(newHeight);
+            };
+            const onPointerUp = () => {
+                if (!resizing) return;
+                resizing = false;
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                if (activePointerId !== null) {
+                    bottomResizeHandle.releasePointerCapture?.(activePointerId);
+                    activePointerId = null;
+                }
+            };
+
+            bottomResizeHandle.addEventListener('pointerdown', (event) => {
+                resizing = true;
+                activePointerId = event.pointerId;
+                bottomResizeHandle.setPointerCapture?.(event.pointerId);
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+            });
+        }
+
+        window.addEventListener('resize', resizeRenderer);
+        resizeRenderer();
+        initBottomBarResizer();
+        animate();
+        refreshModeUi();
+        setTransformMode('translate');
+        updateOrbitMouseBindings();
+        controls.addEventListener('change', updateFloatingToolbarPosition);
+        transformControls.addEventListener('objectChange', updateFloatingToolbarPosition);
+        transformControls.addEventListener('objectChange', () => {
+            if (state.selectedEntityIds.length > 1) {
+                applyMultiTransformDeltaFromProxy();
+                updateTransformInputs();
+                return;
+            }
+            if (state.isApplyingUniformScale) return;
+            if (state.sceneMode !== 'edit' || transformControls.getMode() !== 'scale') return;
+            const entity = getEntityById(state.selectedEntityId);
+            if (!entity) return;
+            const start = state.transformStartMap[entity.id];
+            if (!start || !start.scale) return;
+            const obj = entity.object3d;
+            const startScale = new THREE.Vector3(start.scale[0], start.scale[1], start.scale[2]);
+            const currentScale = obj.scale.clone();
+            const factor = getDominantScaleFactor(startScale, currentScale);
+            state.isApplyingUniformScale = true;
+            obj.scale.set(
+                Math.max(0.01, startScale.x * factor),
+                Math.max(0.01, startScale.y * factor),
+                Math.max(0.01, startScale.z * factor)
+            );
+            state.isApplyingUniformScale = false;
+            updateTransformInputs();
+        });
+        transformControls.addEventListener('mouseDown', () => {
+            state.isTransformInteracting = true;
+            beginTransformInteraction();
+        });
+        transformControls.addEventListener('mouseUp', () => {
+            state.isTransformInteracting = false;
+            finishTransformInteraction();
+        });
+        updateLightIntensity(document.getElementById('light-intensity').value);
+        updateLightTemperature(document.getElementById('light-temperature').value);
+
+        Promise.all([fetchModels(), fetchSavedScenes()]).catch((e) => console.error(e));
+    </script>
+</body>
+</html>

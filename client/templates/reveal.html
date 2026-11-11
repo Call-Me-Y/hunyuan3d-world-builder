@@ -1,0 +1,2662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型库 - 雕梁绘境</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon_no_bg.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='icon_no_bg.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icon_no_bg.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icon_no_bg.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon_no_bg.png') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #7209b7;
+            --success-color: #4cc9f0;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-primary: #2b2d42;
+            --text-secondary: #8d99ae;
+            --border-color: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--background-color) 0%, #e9ecef 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 60px 0;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(67, 97, 238, 0.1) 0%, transparent 70%);
+            z-index: -1;
+        }
+        
+        .hero-content {
+            text-align: center;
+            max-width: 800px;
+            padding: 20px;
+            z-index: 1;
+        }
+        
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1.2;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        .hero-content p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease-out 0.4s both;
+        }
+        
+        .primary-btn, .secondary-btn {
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .primary-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+        
+        .secondary-btn {
+            background-color: white;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+        
+        .secondary-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+            background-color: white;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-title h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .feature-card {
+            background-color: var(--card-background);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(114, 9, 183, 0.1));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            color: var(--primary-color);
+        }
+        
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+        
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        /* Use Cases Section */
+        .use-cases {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .case-card {
+            background-color: var(--card-background);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .case-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .case-image {
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            background-color: var(--primary-color);
+        }
+        
+        .case-content {
+            padding: 30px;
+            flex: 1;
+        }
+        
+        .case-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .case-content ul {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+        
+        .case-content li {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: var(--text-secondary);
+        }
+        
+        .case-content li i {
+            color: var(--success-color);
+            margin-top: 4px;
+        }
+        
+        /* Call to Action */
+        .cta {
+            padding: 100px 0;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z" fill="%23ffffff" fill-opacity="0.05" fill-rule="evenodd"/%3E%3C/svg%3E');
+        }
+        
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .cta p {
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto 30px;
+            opacity: 0.9;
+        }
+        
+        .cta-btn {
+            background-color: white;
+            color: var(--primary-color);
+            border: none;
+            padding: 16px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Footer */
+        footer {
+            background-color: var(--text-primary);
+            color: white;
+            padding: 40px 0;
+        }
+        
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .footer-copyright {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-content p {
+                font-size: 1.1rem;
+            }
+            
+            .section-title h2 {
+                font-size: 2rem;
+            }
+            
+            .cta h2 {
+                font-size: 2rem;
+            }
+            
+            .cta p {
+                font-size: 1.1rem;
+            }
+            
+            .feature-card, .case-card {
+                margin-bottom: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+            
+            .primary-btn, .secondary-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .section-title h2 {
+                font-size: 1.8rem;
+            }
+            
+            .cta h2 {
+                font-size: 1.8rem;
+            }
+        }
+        /* 应用场景块级元素样式 */
+.use-case-block {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.use-case-block:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.use-case-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.use-case-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-right: 1rem;
+}
+
+.use-case-header h3 {
+    font-size: 1.8rem;
+    margin: 0;
+    color: #333;
+}
+
+.use-case-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: center;
+}
+
+.use-case-image {
+    flex: 1;
+    min-width: 300px;
+    height: 300px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.use-case-details {
+    flex: 2;
+    min-width: 300px;
+}
+
+.use-case-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.use-case-details h4 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.use-case-features {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1.5rem;
+}
+
+.use-case-features li {
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: flex-start;
+    color: #555;
+}
+
+.use-case-features li i {
+    color: #667eea;
+    margin-right: 0.8rem;
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+
+.use-case-stats {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 0.3rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .use-case-content {
+        flex-direction: column;
+    }
+    
+    .use-case-image {
+        width: 100%;
+        height: 250px;
+    }
+    
+    .use-case-stats {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .stat-item {
+        flex: 1;
+        min-width: 120px;
+    }
+}
+/* 导航栏样式 */
+.navbar {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.navbar.scrolled {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+}
+
+.navbar-brand a {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.navbar-brand a:hover {
+    color: var(--accent-color);
+}
+
+.navbar-brand i {
+    font-size: 1.8rem;
+}
+
+.navbar-menu {
+    display: flex;
+    align-items: center;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+    align-items: center;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: all 0.3s ease;
+    padding: 5px 0;
+    position: relative;
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover {
+    color: var(--primary-color);
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+.nav-btn {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: white !important;
+    padding: 10px 20px !important;
+    border-radius: 30px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+}
+
+.nav-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+}
+
+/* 移动端菜单按钮 */
+.navbar-toggle {
+    display: none;
+}
+
+.menu-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.menu-btn:hover {
+    color: var(--primary-color);
+}
+
+/* 移动端菜单 */
+.mobile-menu {
+    display: none;
+    background-color: white;
+    border-top: 1px solid var(--border-color);
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-links {
+    list-style: none;
+    padding: 20px;
+}
+
+.mobile-links li {
+    margin-bottom: 15px;
+}
+
+.mobile-links a {
+    display: block;
+    text-decoration: none;
+    color: var(--text-primary);
+    padding: 10px 0;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.mobile-links a:hover {
+    color: var(--primary-color);
+}
+
+.mobile-links .nav-btn {
+    text-align: center;
+    margin-top: 10px;
+}
+
+/* 响应式设计 */
+@media (max-width: 992px) {
+    .navbar-menu {
+        display: none;
+    }
+    
+    .navbar-toggle {
+        display: block;
+    }
+    
+    .mobile-menu.active {
+        display: block;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar-brand a {
+        font-size: 1.3rem;
+    }
+    
+    .navbar-brand i {
+        font-size: 1.5rem;
+    }
+}
+
+/* 调整hero区域的上边距，避免被导航栏遮挡 */
+.hero {
+    margin-top: 80px;
+}
+.single-use-case {
+    padding: 60px 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.single-use-case:nth-child(even) {
+    background: white;
+}
+
+/* 调整use-case-block在独立section中的样式 */
+.single-use-case .use-case-block {
+    margin-top: 30px;
+}
+
+.single-use-case .use-case-header {
+    border-bottom: none;
+    margin-bottom: 2rem;
+}
+
+.single-use-case .use-case-header h3 {
+    display: none;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .single-use-case {
+        padding: 40px 0;
+    }
+}
+.cultural-images {
+    flex: 1;
+    min-width: 300px;
+}
+
+.cultural-image-slider {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* 2. 添加Swiper专用样式 - 这些是新增的 */
+/* 单个幻灯片样式 */
+.swiper-slide {
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #f5f5f5;
+}
+
+.slider-container {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    height: 100%;
+}
+
+.slide {
+    min-width: 100%;
+    height:100%;
+    background-size: contain; /* 修改为contain，保持图片完整显示 */
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #f5f5f5;
+}
+
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(255, 255, 255, 0.8);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #333;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.slider-btn:hover {
+    background-color: white;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.slider-btn-prev,
+.swiper-button-next {
+    background-color: rgba(0, 0, 0, 0.5);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    /* 确保按钮在最上层 */
+    z-index: 10;
+}
+
+.swiper-button-prev:hover,
+.swiper-button-next:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.swiper-button-prev::after,
+.swiper-button-next::after {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.swiper-pagination {
+    /* 可以在这里添加自定义样式 */
+    bottom: 20px !important;
+}
+
+.swiper-pagination-bullet {
+    background-color: rgba(255, 255, 255, 0.7);
+    width: 12px;
+    height: 12px;
+    margin: 0 6px !important;
+}
+
+.swiper-pagination-bullet-active {
+    background-color: white;
+    width: 14px;
+    height: 14px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .cultural-image-slider {
+        height: 300px;
+    }
+    
+.swiper-button-prev,
+    .swiper-button-next {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .swiper-button-prev::after,
+    .swiper-button-next::after {
+        font-size: 16px;
+    }
+}
+
+    .slider-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+
+@media (max-width: 480px) {
+    .cultural-image-slider {
+        height: 250px;
+    }
+}
+.use-cases {
+    background: #fafafa;
+    padding: 4rem 0;
+}
+
+.use-case-block {
+    background: white;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border-top: 2px solid #f0f0f0;
+    border-bottom: 2px solid #f0f0f0;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.use-case-block:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.use-case-block:last-child {
+    margin-bottom: 0;
+}
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 添加滚动渐入类 */
+.fade-in-section {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    will-change: opacity, transform;
+}
+
+.fade-in-section.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 为不同元素添加不同的延迟，创建错开的动画效果 */
+.fade-in-section:nth-child(1) {
+    transition-delay: 0.1s;
+}
+
+.fade-in-section:nth-child(2) {
+    transition-delay: 0.2s;
+}
+
+.fade-in-section:nth-child(3) {
+    transition-delay: 0.3s;
+}
+
+.fade-in-section:nth-child(4) {
+    transition-delay: 0.4s;
+}
+
+.fade-in-section:nth-child(5) {
+    transition-delay: 0.5s;
+}
+
+/* 添加其他动画方向变体 */
+.fade-in-left {
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-left.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.fade-in-right {
+    opacity: 0;
+    transform: translateX(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-right.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.fade-in-fade {
+    opacity: 0;
+    transition: opacity 1s ease-out;
+}
+
+.fade-in-fade.is-visible {
+    opacity: 1;
+}
+/* 文物保护领域图片轮播样式 */
+.cultural-image-slider {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.slider-container {
+    position: absolute;
+    width: 400%; /* 因为有4张图片 */
+    height: 100%;
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.slide {
+    width: 25%; /* 每张图片占25%的宽度 */
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+}
+
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: background-color 0.3s ease;
+}
+
+.slider-btn:hover {
+    background-color: white;
+}
+
+.slider-btn-prev {
+    left: 15px;
+}
+
+.slider-btn-next {
+    right: 15px;
+}
+
+.slider-dots {
+    position: absolute;
+    bottom: 15px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.slider-dot {
+    width: 12px;
+    height: 12px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.slider-dot.active,
+.slider-dot:hover {
+    background-color: white;
+    transform: scale(1.2);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .cultural-image-slider {
+        height: 250px;
+    }
+    
+    .slider-btn {
+        width: 35px;
+        height: 35px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cultural-image-slider {
+        height: 200px;
+    }
+    
+    .slider-btn {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #7209b7;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-primary: #2b2d42;
+            --text-secondary: #8d99ae;
+            --border-color: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 95%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        /* Header Container */
+        .header-container {
+            background: white;
+            border-radius: 20px;
+            padding: 15px 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .back-btn {
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+        
+        .back-btn:hover {
+            transform: translateX(-3px);
+        }
+        
+        .back-btn i {
+            font-size: 2em;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header h1 i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Search Bar */
+        .search-container {
+            position: relative;
+            flex: 1;
+            max-width: 500px;
+        }
+        
+        .search-bar {
+            width: 100%;
+            padding: 12px 50px 12px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .search-bar:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+        
+        /* Models Grid */
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            padding: 12px 0;
+        }
+        
+        .model-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .model-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .model-viewer {
+            width: 100%;
+            min-height: 220px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .model-viewer canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .model-name {
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--primary-color);
+        }
+        
+        .loading-spinner i {
+            font-size: 3em;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-model-viewer {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .detail-button {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 44px;
+            height: 44px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 120;
+            transition: all 0.3s ease;
+        }
+
+        .detail-button:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .detail-button i {
+            font-size: 18px;
+            color: #2b2d42;
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 68px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(6px);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            z-index: 119;
+            min-width: 250px;
+            display: none;
+        }
+
+        .control-panel.show {
+            display: block;
+        }
+
+        .control-panel h3 {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            color: #2b2d42;
+            font-weight: 600;
+        }
+
+        .control-item {
+            margin-bottom: 12px;
+        }
+
+        .control-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-item label {
+            display: block;
+            font-size: 13px;
+            color: #8d99ae;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .control-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .control-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .control-value {
+            font-size: 13px;
+            color: #2b2d42;
+            text-align: right;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .control-action-btn {
+            width: 100%;
+            margin-top: 6px;
+            padding: 9px 12px;
+            border: none;
+            border-radius: 8px;
+            background: #eef2ff;
+            color: #4f46e5;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-action-btn:hover {
+            background: #dfe7ff;
+        }
+
+        .modal-info {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .info-item label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .info-item input {
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .info-item input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .info-item input[readonly] {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        /* 浮动加号按钮 */
+        .floating-add-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .floating-add-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+        }
+
+        .floating-add-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <div class="header">
+                <a href="{{ url_for('index') }}" class="back-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <h1><i class="fas fa-cube"></i> 模型库</h1>
+            </div>
+            <div class="search-container">
+                <input type="text" class="search-bar" id="searchInput" placeholder="搜索模型...">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </div>
+        
+        <div class="models-grid" id="modelsGrid">
+            <!-- 模型卡片将通过 JavaScript 动态加载 -->
+        </div>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>模型详情</h2>
+                <button class="modal-close" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-model-viewer" id="modalModelViewer">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                </div>
+                <div class="modal-info">
+                    <div class="info-item">
+                        <label>名称:</label>
+                        <input type="text" id="modalModelName" placeholder="输入模型名称">
+                    </div>
+                    <div class="info-item">
+                        <label>类别:</label>
+                        <div class="input-group" style="display: flex; gap: 10px;">
+                            <div class="radio-option" style="flex: 1; position: relative; margin: 0;">
+                                <input type="radio" id="modalCategoryItem" name="modalCategory" value="item" style="display: none;">
+                                <label for="modalCategoryItem" style="display: block; padding: 15px; border: 2px solid var(--border-color); border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s ease; font-weight: 500; margin: 0;">物品</label>
+                            </div>
+                            <div class="radio-option" style="flex: 1; position: relative; margin: 0;">
+                                <input type="radio" id="modalCategoryScene" name="modalCategory" value="scene" style="display: none;">
+                                <label for="modalCategoryScene" style="display: block; padding: 15px; border: 2px solid var(--border-color); border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s ease; font-weight: 500; margin: 0;">场景</label>
+                            </div>
+                        </div>
+                        <style>
+                            .info-item .radio-option input[type="radio"]:checked + label {
+                                border-color: #667eea;
+                                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+                                color: #667eea;
+                            }
+                        </style>
+                    </div>
+                    <div class="info-item">
+                        <label>Session ID:</label>
+                        <input type="text" id="modalSessionId" readonly>
+                    </div>
+                    <div class="info-item">
+                        <label>创建时间:</label>
+                        <input type="text" id="modalCreatedAt" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" id="downloadModel">
+                    <i class="fas fa-download"></i> 下载
+                </button>
+                <button class="btn btn-primary" id="saveModel">保存</button>
+                <button class="btn btn-danger" id="deleteModel">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allModels = [];
+        let filteredModels = [];
+        const sceneCache = new Map(); // 缓存场景以避免重复加载
+        const staticPreviewCache = new Map(); // 首页静态预览图缓存
+
+        // 从服务器加载模型列表
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/database/models?category=item&limit=200');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    allModels = data.models;
+                    filteredModels = allModels;
+                    renderModels();
+                } else {
+                    console.error('加载模型失败:', data.message);
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('加载模型失败:', error);
+                showEmptyState();
+            }
+        }
+
+        // 渲染模型网格
+        function renderModels() {
+            const grid = document.getElementById('modelsGrid');
+            grid.innerHTML = '';
+            
+            if (filteredModels.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            filteredModels.forEach(model => {
+                const card = document.createElement('div');
+                card.className = 'model-card';
+                card.dataset.name = model.name || '';
+                card.dataset.sessionId = model.session_id;
+                
+                card.innerHTML = `
+                    <div class="model-viewer" data-model-url="${model.file_url}" data-session-id="${model.session_id}">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner"></i>
+                        </div>
+                    </div>
+                    <div class="model-name">${model.name || '未命名模型'}</div>
+                `;
+                
+                // 添加点击事件
+                card.addEventListener('click', () => {
+                    openEditModal(model);
+                });
+                
+                card.style.cursor = 'pointer';
+                
+                grid.appendChild(card);
+            });
+            
+            // 加载首页静态预览图（限制并发，避免 WebGL context 过多）
+            loadStaticPreviews(grid);
+        }
+
+        function loadStaticPreviews(grid) {
+            const viewerElements = grid.querySelectorAll('.model-viewer');
+            const maxConcurrentLoads = 3;
+            let nextIndex = 0;
+            let activeLoads = 0;
+
+            function runNext() {
+                while (activeLoads < maxConcurrentLoads && nextIndex < filteredModels.length) {
+                    const model = filteredModels[nextIndex];
+                    const viewer = viewerElements[nextIndex];
+                    nextIndex += 1;
+
+                    if (!viewer) continue;
+                    if (!model.file_url || !model.session_id) {
+                        viewer.innerHTML = `
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                                <div>模型数据不完整</div>
+                            </div>
+                        `;
+                        continue;
+                    }
+
+                    activeLoads += 1;
+                    loadModelViewer(viewer, model.file_url, model.session_id)
+                        .catch((error) => {
+                            console.error('静态预览图加载失败:', error);
+                        })
+                        .finally(() => {
+                            activeLoads -= 1;
+                            runNext();
+                        });
+                }
+            }
+
+            runNext();
+        }
+
+        // 加载并渲染单个模型
+        function loadModelViewer(container, fileUrl, sessionId) {
+            return new Promise((resolve) => {
+            // 检查必要参数
+            if (!container || !fileUrl || !sessionId) {
+                console.error('加载模型失败: 缺少必要参数', { container, fileUrl, sessionId });
+                container.innerHTML = `
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                        <div>参数错误</div>
+                    </div>
+                `;
+                resolve();
+                return;
+            }
+            
+            // 确保 fileUrl 是字符串
+            fileUrl = String(fileUrl || '').trim();
+            if (!fileUrl) {
+                console.error('加载模型失败: fileUrl 为空');
+                container.innerHTML = `
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                        <div>文件路径无效</div>
+                    </div>
+                `;
+                resolve();
+                return;
+            }
+            
+            // 生成唯一ID用于缓存
+            const cacheKey = sessionId;
+            
+            // 直接复用已缓存的静态预览图
+            if (staticPreviewCache.has(cacheKey)) {
+                const cachedPreview = staticPreviewCache.get(cacheKey);
+                container.innerHTML = `<img src="${cachedPreview}" alt="模型预览图" style="width: 100%; height: 100%; object-fit: contain; display: block; background: #f8f9fa;">`;
+                resolve();
+                return;
+            }
+            
+            let scene, camera, renderer, model;
+            
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf8f9fa);
+            
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(
+                45,
+                1, // 初始比例
+                0.1,
+                1000
+            );
+            camera.position.set(0, 0, 5);
+            
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            container.appendChild(renderer.domElement);
+            // 提升亮度与色彩准确度
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMappingExposure = 1.4;
+            
+            // 调整渲染器大小
+            const rect = container.getBoundingClientRect();
+            renderer.setSize(rect.width, rect.height);
+            camera.aspect = rect.width / rect.height;
+            camera.updateProjectionMatrix();
+            
+            // 添加灯光
+            const ambientLight = new THREE.AmbientLight(0xfffef7, 5);
+            scene.add(ambientLight);
+            
+            const directionalLight1 = new THREE.DirectionalLight(0xfffef7, 4);
+            directionalLight1.position.set(5, 5, 5);
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xfffef7, 2);
+            directionalLight2.position.set(-5, 3, -5);
+            scene.add(directionalLight2);
+            
+            // 检查 GLTFLoader 是否可用
+            if (!THREE.GLTFLoader) {
+                console.error('GLTFLoader 未加载');
+                container.innerHTML = `
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                        <div>加载器未就绪</div>
+                    </div>
+                `;
+                cleanupRenderer();
+                resolve();
+                return;
+            }
+            
+            // 加载模型
+            const loader = new THREE.GLTFLoader();
+            const modelUrl = `/api/file/${encodeURIComponent(fileUrl)}`;
+            
+            loader.load(
+                modelUrl,
+                (gltf) => {
+                    // 移除加载指示器
+                    const spinner = container.querySelector('.loading-spinner');
+                    if (spinner) {
+                        spinner.remove();
+                    }
+                    
+                    // 添加模型到场景
+                    model = gltf.scene;
+                    
+                    // 遍历模型，使用 MeshBasicMaterial 覆盖所有材质
+                    model.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            const originalMaterial = child.material;
+                            
+                            // 处理单个材质或材质数组
+                            if (Array.isArray(originalMaterial)) {
+                                child.material = originalMaterial.map((mat) => {
+                                    const texture = mat.map;
+                                    if (texture) texture.encoding = THREE.sRGBEncoding;
+                                    return new THREE.MeshBasicMaterial({
+                                        map: texture,
+                                        color: mat.color,
+                                        transparent: mat.transparent,
+                                        opacity: mat.opacity
+                                    });
+                                });
+                            } else {
+                                const texture = originalMaterial.map;
+                                if (texture) texture.encoding = THREE.sRGBEncoding;
+                                child.material = new THREE.MeshBasicMaterial({
+                                    map: texture,
+                                    color: originalMaterial.color,
+                                    transparent: originalMaterial.transparent,
+                                    opacity: originalMaterial.opacity
+                                });
+                            }
+                        }
+                    });
+                    
+                    // 计算模型边界框以正确缩放和居中
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    // 缩放模型以适应视图
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 2.5 / maxDim;
+                    model.scale.multiplyScalar(scale);
+                    
+                    // 居中模型
+                    model.position.sub(center.multiplyScalar(scale));
+                    
+                    scene.add(model);
+                    
+                    // 设置相机位置（基于缩放后的尺寸，避免大模型被过度拉远）
+                    const scaledMaxDim = maxDim * scale;
+                    const initialCameraZ = Math.max(3.2, scaledMaxDim * 2);
+                    camera.position.z = initialCameraZ;
+                    camera.lookAt(0, 0, 0);
+                    
+                    // 首页仅显示静态渲染图：渲染一帧后转图片并释放 WebGL context
+                    renderStaticFrame();
+                    const previewDataUrl = renderer.domElement.toDataURL('image/png');
+                    staticPreviewCache.set(cacheKey, previewDataUrl);
+                    container.innerHTML = `<img src="${previewDataUrl}" alt="模型预览图" style="width: 100%; height: 100%; object-fit: contain; display: block; background: #f8f9fa;">`;
+                    cleanupRenderer();
+                    resolve();
+                },
+                (progress) => {
+                    // 加载进度
+                    console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
+                },
+                (error) => {
+                    console.error('加载模型失败:', error);
+                    container.innerHTML = `
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                            <div>加载失败</div>
+                        </div>
+                    `;
+                    cleanupRenderer();
+                    resolve();
+                }
+            );
+            
+            function renderStaticFrame() {
+                renderer.render(scene, camera);
+            }
+
+            function cleanupRenderer() {
+                if (!scene || !renderer) return;
+
+                scene.traverse((object) => {
+                    if (!object.isMesh) return;
+                    if (object.geometry) object.geometry.dispose();
+
+                    const materials = Array.isArray(object.material) ? object.material : [object.material];
+                    materials.forEach((material) => {
+                        if (!material) return;
+                        // 不主动释放贴图，避免影响弹窗中同模型的后续加载
+                        material.dispose();
+                    });
+                });
+
+                renderer.dispose();
+                renderer.forceContextLoss();
+                if (renderer.domElement && renderer.domElement.parentNode) {
+                    renderer.domElement.parentNode.removeChild(renderer.domElement);
+                }
+            }
+            });
+        }
+
+        // 显示空状态
+        function showEmptyState() {
+            const grid = document.getElementById('modelsGrid');
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-cube"></i>
+                    <div>暂无模型</div>
+                </div>
+            `;
+        }
+
+        // 搜索功能
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (searchTerm === '') {
+                filteredModels = allModels;
+            } else {
+                filteredModels = allModels.filter(model => {
+                    const name = (model.name || '').toLowerCase();
+                    return name.includes(searchTerm);
+                });
+            }
+            
+            renderModels();
+        });
+
+        // 打开编辑模态框
+        let currentModel = null;
+        let currentModalViewer = null;
+        let modalScaleValue = 1;
+
+        class ModalModelViewer {
+            constructor(container) {
+                this.container = container;
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                this.model = null;
+                this.modelContainer = null;
+                this.mixers = [];
+                this.clock = new THREE.Clock();
+                this.animateId = null;
+                this.resizeObserver = null;
+                this.rotationSpeed = 0.01;
+                this.init();
+            }
+
+            init() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0xf8f9fa);
+
+                const aspect = this.container.clientWidth / this.container.clientHeight || 1;
+                this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+                this.camera.position.set(0, 0, 5);
+
+                this.renderer = new THREE.WebGLRenderer({
+                    antialias: true,
+                    alpha: true,
+                    preserveDrawingBuffer: true
+                });
+                this.renderer.setSize(this.container.clientWidth || 1, this.container.clientHeight || 1);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1.4;
+                this.container.appendChild(this.renderer.domElement);
+
+                this.setupLights();
+
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.enableZoom = true;
+                this.controls.autoRotate = false;
+                this.controls.autoRotateSpeed = 0;
+
+                this.resizeObserver = new ResizeObserver(() => this.handleResize());
+                this.resizeObserver.observe(this.container);
+
+                this.animate();
+            }
+
+            setupLights() {
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambientLight);
+
+                const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+                mainLight.position.set(0, 0, 5);
+                mainLight.castShadow = true;
+                mainLight.shadow.mapSize.width = 2048;
+                mainLight.shadow.mapSize.height = 2048;
+                mainLight.shadow.camera.near = 0.5;
+                mainLight.shadow.camera.far = 50;
+                mainLight.shadow.camera.left = -10;
+                mainLight.shadow.camera.right = 10;
+                mainLight.shadow.camera.top = 10;
+                mainLight.shadow.camera.bottom = -10;
+                this.scene.add(mainLight);
+
+                const topLight = new THREE.DirectionalLight(0xffffff, 0.9);
+                topLight.position.set(0, 5, 0);
+                topLight.target.position.set(0, 0, 0);
+                this.scene.add(topLight);
+                this.scene.add(topLight.target);
+
+                const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                fillLight.position.set(-3, 2, 3);
+                this.scene.add(fillLight);
+
+                const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+                rimLight.position.set(0, 0, -5);
+                this.scene.add(rimLight);
+            }
+
+            loadModel(fileUrl) {
+                return new Promise((resolve, reject) => {
+                    if (!THREE.GLTFLoader) {
+                        reject(new Error('GLTFLoader 未加载'));
+                        return;
+                    }
+
+                    const loader = new THREE.GLTFLoader(new THREE.LoadingManager());
+                    const modelUrl = `/api/file/${encodeURIComponent(fileUrl)}`;
+
+                    loader.load(
+                        modelUrl,
+                        (gltf) => {
+                            if (this.modelContainer) {
+                                this.scene.remove(this.modelContainer);
+                            }
+                            this.mixers.forEach((mixer) => mixer.stopAllAction());
+                            this.mixers = [];
+
+                            this.model = gltf.scene;
+                            this.model.traverse((child) => {
+                                if (!child.isMesh || !child.material) return;
+                                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                                materials.forEach((material) => {
+                                    if (material.map) {
+                                        material.map.needsUpdate = true;
+                                        material.map.encoding = THREE.sRGBEncoding;
+                                    }
+                                    if (material.emissiveMap) {
+                                        material.emissiveMap.needsUpdate = true;
+                                        material.emissiveMap.encoding = THREE.sRGBEncoding;
+                                    }
+                                    if (material.normalMap) material.normalMap.needsUpdate = true;
+                                    if (material.roughnessMap) material.roughnessMap.needsUpdate = true;
+                                    if (material.metalnessMap) material.metalnessMap.needsUpdate = true;
+                                    if (material.aoMap) material.aoMap.needsUpdate = true;
+                                });
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            });
+
+                            this.modelContainer = new THREE.Group();
+                            const box = new THREE.Box3().setFromObject(this.model);
+                            const center = box.getCenter(new THREE.Vector3());
+                            const size = box.getSize(new THREE.Vector3());
+                            this.model.position.sub(center);
+                            this.modelContainer.add(this.model);
+                            this.scene.add(this.modelContainer);
+                            this.modelContainer.scale.setScalar(modalScaleValue);
+
+                            const maxDim = Math.max(size.x, size.y, size.z) || 1;
+                            const distance = maxDim * 2;
+                            this.camera.position.set(0, 0, distance);
+                            this.camera.lookAt(0, 0, 0);
+                            this.controls.target.set(0, 0, 0);
+                            this.controls.update();
+
+                            if (gltf.animations && gltf.animations.length > 0) {
+                                const mixer = new THREE.AnimationMixer(this.model);
+                                gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
+                                this.mixers.push(mixer);
+                            }
+
+                            resolve();
+                        },
+                        undefined,
+                        (error) => reject(error)
+                    );
+                });
+            }
+
+            handleResize() {
+                if (!this.container || !this.renderer || !this.camera) return;
+                const width = this.container.clientWidth || 1;
+                const height = this.container.clientHeight || 1;
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(width, height);
+            }
+
+            animate() {
+                this.animateId = requestAnimationFrame(() => this.animate());
+                const delta = this.clock.getDelta();
+                this.mixers.forEach((mixer) => mixer.update(delta));
+
+                if (this.modelContainer) {
+                    this.modelContainer.rotation.y += this.rotationSpeed;
+                }
+                if (this.controls) {
+                    this.controls.update();
+                }
+                if (this.renderer && this.scene && this.camera) {
+                    this.renderer.render(this.scene, this.camera);
+                }
+            }
+
+            destroy() {
+                if (this.animateId) {
+                    cancelAnimationFrame(this.animateId);
+                    this.animateId = null;
+                }
+                if (this.resizeObserver) {
+                    this.resizeObserver.disconnect();
+                    this.resizeObserver = null;
+                }
+                if (this.controls) {
+                    this.controls.dispose();
+                    this.controls = null;
+                }
+                this.mixers.forEach((mixer) => mixer.stopAllAction());
+                this.mixers = [];
+
+                if (this.modelContainer) {
+                    this.modelContainer.traverse((object) => {
+                        if (!object.isMesh) return;
+                        if (object.geometry) object.geometry.dispose();
+                        if (object.material) {
+                            const materials = Array.isArray(object.material) ? object.material : [object.material];
+                            materials.forEach((material) => material && material.dispose());
+                        }
+                    });
+                    this.scene.remove(this.modelContainer);
+                    this.modelContainer = null;
+                }
+
+                if (this.renderer) {
+                    this.renderer.dispose();
+                    if (this.renderer.domElement && this.renderer.domElement.parentNode) {
+                        this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
+                    }
+                    this.renderer = null;
+                }
+                this.scene = null;
+                this.camera = null;
+                this.model = null;
+            }
+        }
+        
+        function openEditModal(model) {
+            currentModel = model;
+            const modal = document.getElementById('editModal');
+            const modelName = document.getElementById('modalModelName');
+            const sessionId = document.getElementById('modalSessionId');
+            const createdAt = document.getElementById('modalCreatedAt');
+            
+            // 填充模型信息
+            modelName.value = model.name || '';
+            sessionId.value = model.session_id || '';
+            createdAt.value = model.created_at || '';
+            
+            // 设置类别选项
+            const category = model.category || 'item';
+            if (category === 'scene') {
+                document.getElementById('modalCategoryScene').checked = true;
+            } else {
+                document.getElementById('modalCategoryItem').checked = true;
+            }
+            
+            // 显示模态框
+            modal.classList.add('show');
+
+            // 加载模型到模态框（先显示再初始化，避免canvas尺寸为0）
+            const modalViewer = document.getElementById('modalModelViewer');
+            modalViewer.innerHTML = `
+                <button class="detail-button" onclick="toggleModalControlPanel(event)">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div class="control-panel" id="modalControlPanel" onclick="event.stopPropagation()">
+                    <h3>模型控制</h3>
+                    <div class="control-item">
+                        <label>光照亮度</label>
+                        <input type="range" class="control-slider" id="modal-light-intensity" min="0" max="2" value="1" step="0.1" oninput="updateModalLightIntensity(this.value)">
+                        <div class="control-value" id="modal-light-intensity-value">1.0</div>
+                    </div>
+                    <div class="control-item">
+                        <label>色温</label>
+                        <input type="range" class="control-slider" id="modal-light-temperature" min="2000" max="8000" value="5500" step="100" oninput="updateModalLightTemperature(this.value)">
+                        <div class="control-value" id="modal-light-temperature-value">5500K</div>
+                    </div>
+                    <div class="control-item">
+                        <label>旋转速度</label>
+                        <input type="range" class="control-slider" id="modal-rotation-speed" min="0" max="0.05" value="0.01" step="0.001" oninput="updateModalRotationSpeed(this.value)">
+                        <div class="control-value" id="modal-rotation-speed-value">0.010</div>
+                    </div>
+                    <div class="control-item">
+                        <label>模型缩放</label>
+                        <input type="range" class="control-slider" id="modal-scale" min="0.4" max="2.5" value="1" step="0.05" oninput="updateModalScale(this.value)">
+                        <div class="control-value" id="modal-scale-value">1.00x</div>
+                    </div>
+                    <button class="control-action-btn" onclick="resetModalViewerSettings()">重置参数</button>
+                </div>
+                <div class="loading-spinner"><i class="fas fa-spinner"></i></div>
+            `;
+            modalScaleValue = 1;
+            document.addEventListener('click', handleModalOutsideClick);
+            
+            // 检查必要数据是否存在
+            if (model.file_url && model.session_id) {
+                // 等待一帧让弹窗完成布局，再进行 Three.js 初始化
+                requestAnimationFrame(() => {
+                    loadModelInModal(modalViewer, model.file_url, model.session_id);
+                });
+            } else {
+                modalViewer.innerHTML = `
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                        <div>模型数据不完整</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // 在模态框中加载模型
+        function loadModelInModal(container, fileUrl, sessionId) {
+            // 检查必要参数
+            if (!container || !fileUrl || !sessionId) {
+                console.error('加载模型失败: 缺少必要参数', { container, fileUrl, sessionId });
+                container.innerHTML = `
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                        <div>参数错误</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 确保 fileUrl 是字符串
+            fileUrl = String(fileUrl || '').trim();
+            if (!fileUrl) {
+                console.error('加载模型失败: fileUrl 为空');
+                container.innerHTML = `
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                        <div>文件路径无效</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (currentModalViewer) {
+                currentModalViewer.destroy();
+                currentModalViewer = null;
+            }
+
+            const spinner = container.querySelector('.loading-spinner');
+            if (spinner) spinner.remove();
+
+            currentModalViewer = new ModalModelViewer(container);
+            currentModalViewer.loadModel(fileUrl).catch((error) => {
+                console.error('加载模型失败:', error);
+                if (currentModalViewer) {
+                    currentModalViewer.destroy();
+                    currentModalViewer = null;
+                }
+                container.innerHTML = `
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3em; margin-bottom: 10px;"></i>
+                        <div>加载失败</div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleModalControlPanel(event) {
+            if (event) event.stopPropagation();
+            const panel = document.getElementById('modalControlPanel');
+            if (panel) panel.classList.toggle('show');
+        }
+
+        function handleModalOutsideClick(event) {
+            const modal = document.getElementById('editModal');
+            if (!modal.classList.contains('show')) return;
+            const panel = document.getElementById('modalControlPanel');
+            const button = document.querySelector('#modalModelViewer .detail-button');
+            if (!panel || !button || !panel.classList.contains('show')) return;
+            if (!panel.contains(event.target) && !button.contains(event.target)) {
+                panel.classList.remove('show');
+            }
+        }
+
+        function updateModalLightIntensity(value) {
+            const display = document.getElementById('modal-light-intensity-value');
+            if (display) display.textContent = parseFloat(value).toFixed(1);
+            if (!currentModalViewer || !currentModalViewer.scene) return;
+            const intensity = parseFloat(value);
+            currentModalViewer.scene.traverse((object) => {
+                if (!object.isLight) return;
+                if (object.type === 'AmbientLight') {
+                    object.intensity = 0.6 * intensity;
+                } else if (object.type === 'DirectionalLight') {
+                    const base = object.userData && object.userData.originalIntensity ? object.userData.originalIntensity : object.intensity;
+                    object.userData.originalIntensity = base;
+                    object.intensity = base * intensity;
+                }
+            });
+        }
+
+        function updateModalLightTemperature(value) {
+            const display = document.getElementById('modal-light-temperature-value');
+            if (display) display.textContent = `${parseInt(value, 10)}K`;
+            if (!currentModalViewer || !currentModalViewer.scene) return;
+            const color = kelvinToRGB(parseInt(value, 10));
+            currentModalViewer.scene.traverse((object) => {
+                if (object.isLight && object.type === 'DirectionalLight') {
+                    object.color.setRGB(color.r / 255, color.g / 255, color.b / 255);
+                }
+            });
+        }
+
+        function updateModalRotationSpeed(value) {
+            const speed = parseFloat(value);
+            const display = document.getElementById('modal-rotation-speed-value');
+            if (display) display.textContent = speed.toFixed(3);
+            if (currentModalViewer) currentModalViewer.rotationSpeed = speed;
+        }
+
+        function updateModalScale(value) {
+            modalScaleValue = parseFloat(value);
+            const display = document.getElementById('modal-scale-value');
+            if (display) display.textContent = `${modalScaleValue.toFixed(2)}x`;
+            if (currentModalViewer && currentModalViewer.modelContainer) {
+                currentModalViewer.modelContainer.scale.setScalar(modalScaleValue);
+            }
+        }
+
+        function resetModalViewerSettings() {
+            const intensity = document.getElementById('modal-light-intensity');
+            const temperature = document.getElementById('modal-light-temperature');
+            const rotation = document.getElementById('modal-rotation-speed');
+            const scale = document.getElementById('modal-scale');
+            if (intensity) {
+                intensity.value = '1';
+                updateModalLightIntensity('1');
+            }
+            if (temperature) {
+                temperature.value = '5500';
+                updateModalLightTemperature('5500');
+            }
+            if (rotation) {
+                rotation.value = '0.01';
+                updateModalRotationSpeed('0.01');
+            }
+            if (scale) {
+                scale.value = '1';
+                updateModalScale('1');
+            }
+        }
+
+        function kelvinToRGB(temp) {
+            let temperature = temp / 100;
+            let r;
+            let g;
+            let b;
+            if (temperature <= 66) {
+                r = 255;
+                g = 99.4708025861 * Math.log(Math.max(temperature, 1)) - 161.1195681661;
+                if (temperature <= 19) {
+                    b = 0;
+                } else {
+                    b = 138.5177312231 * Math.log(temperature - 10) - 305.0447927307;
+                }
+            } else {
+                r = 329.698727446 * Math.pow(temperature - 60, -0.1332047592);
+                g = 288.1221695283 * Math.pow(temperature - 60, -0.0755148492);
+                b = 255;
+            }
+            return {
+                r: Math.max(0, Math.min(255, Math.round(r))),
+                g: Math.max(0, Math.min(255, Math.round(g))),
+                b: Math.max(0, Math.min(255, Math.round(b)))
+            };
+        }
+        
+        // 关闭模态框
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('editModal').classList.remove('show');
+            document.removeEventListener('click', handleModalOutsideClick);
+            if (currentModalViewer) {
+                currentModalViewer.destroy();
+                currentModalViewer = null;
+            }
+        });
+        
+        // 点击背景关闭模态框
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target.id === 'editModal') {
+                document.getElementById('editModal').classList.remove('show');
+                document.removeEventListener('click', handleModalOutsideClick);
+                if (currentModalViewer) {
+                    currentModalViewer.destroy();
+                    currentModalViewer = null;
+                }
+            }
+        });
+        
+        // 保存按钮
+        document.getElementById('saveModel').addEventListener('click', async () => {
+            if (!currentModel) return;
+            
+            const newName = document.getElementById('modalModelName').value;
+            const newCategory = document.querySelector('input[name="modalCategory"]:checked').value;
+            
+            try {
+                // 调用后端API更新模型名称和类别
+                const response = await fetch('/api/database/models/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: currentModel.session_id,
+                        name: newName,
+                        category: newCategory
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('保存成功！');
+                    // 刷新整个页面
+                    location.reload();
+                } else {
+                    alert('保存失败：' + (data.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('保存失败:', error);
+                alert('保存失败！');
+            }
+        });
+        
+        // 删除按钮
+        document.getElementById('deleteModel').addEventListener('click', async () => {
+            if (!currentModel) return;
+            
+            if (confirm('确定要删除这个模型吗？')) {
+                try {
+                    // 调用后端API删除模型
+                    const response = await fetch('/api/database/models/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            session_id: currentModel.session_id
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        alert('删除成功！');
+                        // 刷新整个页面
+                        location.reload();
+                    } else {
+                        alert('删除失败：' + (data.message || '未知错误'));
+                    }
+                } catch (error) {
+                    console.error('删除失败:', error);
+                    alert('删除失败！');
+                }
+            }
+        });
+        
+        // 下载按钮
+        document.getElementById('downloadModel').addEventListener('click', async () => {
+            if (!currentModel || !currentModel.file_url) {
+                alert('模型文件路径无效！');
+                return;
+            }
+            
+            try {
+                const fileUrl = String(currentModel.file_url || '').trim();
+                if (!fileUrl) {
+                    alert('模型文件路径无效！');
+                    return;
+                }
+                
+                const modelUrl = `/api/file/${encodeURIComponent(fileUrl)}`;
+                
+                // 创建一个临时的a标签来触发下载
+                const link = document.createElement('a');
+                link.href = modelUrl;
+                link.download = `${currentModel.name || 'model'}.glb`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error('下载失败:', error);
+                alert('下载失败！');
+            }
+        });
+        
+        // 页面加载时获取模型
+        loadModels();
+    </script>
+
+    <!-- 浮动加号按钮 -->
+    <a href="{{ url_for('gen') }}" class="floating-add-btn" title="创建新模型">
+        <i class="fas fa-plus"></i>
+    </a>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Local secrets
+.env
+**/.env
+database/models.db
+**/__pycache__/
+*.py[cod]
+
+Hunyuan3D-2/models/*
+temp/*
+save/*
+uploads/*

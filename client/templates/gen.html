@@ -1,0 +1,3595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D模型生成 - 雕梁绘境</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon_no_bg.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='icon_no_bg.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icon_no_bg.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='icon_no_bg.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon_no_bg.png') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #7209b7;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-primary: #2b2d42;
+            --text-secondary: #8d99ae;
+            --border-color: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 90%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+        }
+        
+        /* Header Container */
+        .header-container {
+            background: white;
+            border-radius: 20px;
+            padding: 15px 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        /* Header */
+        .header {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .back-btn {
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: none;
+            color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .back-btn:hover {
+            transform: translateX(-3px);
+        }
+        
+        .back-btn i {
+            font-size: 2em;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header h1 i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header p {
+            display: none;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin: 0;
+        }
+        
+        .tab-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--background-color);
+            color: var(--text-secondary);
+        }
+        
+        .tab-btn:hover {
+            background: var(--border-color);
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        /* Main Content */
+        .main-content {
+            display: flex;
+            gap: 30px;
+            flex: 1;
+            min-height: 0;
+        }
+        
+        .settings-panel {
+            flex: 0 0 500px;
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .settings-header {
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding: 30px;
+        }
+        
+        .settings-header label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        
+        .settings-header label i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-right: 8px;
+        }
+        
+        .settings-content {
+            flex: 1;
+            margin: 0;
+            min-height: 0;
+            padding: 30px;
+        }
+        
+        .result-panel {
+            flex: 1;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .result-header {
+            padding: 30px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .result-header h2 {
+            margin: 0;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .result-header h2 i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .refresh-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result-body {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* Settings Form */
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        .form-group label i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-right: 8px;
+        }
+        
+        .input-group {
+            display: flex;
+        }
+        
+        .radio-option {
+            flex: 1;
+            position: relative;
+            margin: 1px;
+        }
+        
+        .radio-option input[type="radio"] {
+            display: none;
+        }
+        
+        .radio-option label {
+            display: block;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            margin: 0;
+        }
+        
+        .radio-option input[type="radio"]:checked + label {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            color: var(--primary-color);
+        }
+        
+        .text-input, .name-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .text-input:focus, .name-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .input-area {
+            width: 100%;
+            height: 220px;
+        }
+        
+        /* Text input mode */
+        .text-input-area {
+            width: 100%;
+            height: 220px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            resize: none;
+        }
+        
+        .text-input-area:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        /* Image upload area */
+        .image-upload-area {
+            width: 100%;
+            height: 220px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--background-color);
+        }
+        
+        .image-upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .image-upload-area.has-content {
+            border-style: solid;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding: 0;
+        }
+        
+        /* Multi-view grid */
+        .multi-view-grid {
+            width: 100%;
+            height: 220px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .multi-view-item {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--background-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .multi-view-item:hover {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .multi-view-item.has-image {
+            border-style: solid;
+            border-color: var(--primary-color);
+        }
+        
+        .multi-view-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .multi-view-label {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-primary);
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 5px;
+            border-radius: 4px;
+            z-index: 5;
+        }
+        
+        .multi-view-delete {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            z-index: 10;
+        }
+        
+        .multi-view-delete:hover {
+            background: rgba(255, 0, 0, 1);
+        }
+        
+        .multi-view-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .image-preview {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .image-item {
+            position: relative;
+            width: calc(50% - 5px);
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .delete-btn:hover {
+            background: rgba(255, 0, 0, 1);
+        }
+        
+        /* Single image preview - centered crop */
+        .single-image-preview {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .single-image-item {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .single-image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        
+        .upload-placeholder {
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .upload-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        /* Scene Generation */
+        #scene-images-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 220px;
+        }
+        
+        .scene-upload-item {
+            height: 220px;
+            position: relative;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            background: var(--background-color);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .scene-upload-item.has-image {
+            border-style: solid;
+            border-color: var(--primary-color);
+        }
+        
+        .scene-upload-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .scene-upload-item .delete-scene-image {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            z-index: 10;
+        }
+        
+        .scene-upload-item .delete-scene-image:hover {
+            background: rgba(255, 0, 0, 1);
+        }
+        
+        .scene-upload-placeholder {
+            width: 100%;
+            height: 100%;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        
+        .scene-upload-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        .scene-image-item {
+            position: relative;
+            width: 80px;
+            aspect-ratio: 1;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--background-color);
+        }
+        
+        .scene-image-item:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .scene-image-item.has-image {
+            border-style: solid;
+            background: white;
+        }
+        
+        .scene-image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        
+        .add-image-btn {
+            position: relative;
+            width: 80px;
+            height: 120px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--background-color);
+        }
+        
+        .add-image-btn:hover {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        /* Advanced Settings */
+        .advanced-toggle {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .advanced-btn {
+            transition: all 0.3s ease;
+            color: var(--primary-color);
+            cursor: pointer;
+        }
+        
+        .advanced-btn i {
+            margin-right: 5px;
+        }
+        
+        .advanced-settings {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-color);
+        }
+        
+        .advanced-settings.show {
+            display: block;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .setting-row label {
+            margin: 0;
+            font-weight: 500;
+        }
+        
+        .setting-row input, .setting-row select {
+            width: 150px;
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+        }
+        
+        /* Generate Button */
+        .generate-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Status Message */
+        .status-message {
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .status-message.show {
+            display: block;
+        }
+        
+        .status-message.queue {
+            background: rgba(255, 193, 7, 0.2);
+            color: #856404;
+        }
+        
+        .status-message.generating {
+            background: rgba(0, 123, 255, 0.2);
+            color: #004085;
+        }
+
+        .status-progress-wrap {
+            margin-top: 10px;
+        }
+
+        .status-progress-bar {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+        }
+
+        .status-progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+            transition: width 0.4s ease;
+        }
+
+        .status-progress-text {
+            display: block;
+            margin-top: 6px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        /* Result Panel */
+        .result-nav {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* Detail Button in Render Window */
+        .detail-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        .detail-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .detail-button i {
+            font-size: 20px;
+            color: #2b2d42;
+        }
+        
+        /* Control Panel */
+        .control-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            z-index: 99;
+            min-width: 280px;
+            display: none;
+        }
+        
+        .control-panel.show {
+            display: block;
+        }
+        
+        .control-panel h3 {
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            color: #2b2d42;
+            font-weight: 600;
+        }
+        
+        .control-item {
+            margin-bottom: 20px;
+        }
+        
+        .control-item label {
+            display: block;
+            font-size: 14px;
+            color: #8d99ae;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .control-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .control-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .control-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .control-slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .control-value {
+            font-size: 14px;
+            color: #2b2d42;
+            text-align: right;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        
+        .control-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .control-action-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .control-action-btn.delete {
+            background: #fee;
+            color: #dc3545;
+        }
+        
+        .control-action-btn.delete:hover {
+            background: #fdd;
+            transform: translateY(-2px);
+        }
+        
+        .control-action-btn.download {
+            background: #667eea;
+            color: white;
+        }
+        
+        .control-action-btn.download:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .batch-generate-layout {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 14px;
+        }
+
+        .batch-generate-left,
+        .batch-generate-right {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .batch-action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .generate-btn.secondary {
+            background: #edf2ff;
+            color: #4c6ef5;
+        }
+
+        .generate-btn.secondary:hover {
+            background: #dbe4ff;
+        }
+
+        .batch-list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .batch-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 520px;
+            overflow-y: auto;
+        }
+
+        .batch-item {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px;
+            background: #fff;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .batch-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .batch-item-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .batch-empty {
+            padding: 16px 8px;
+            color: var(--text-secondary);
+            text-align: center;
+            border: 1px dashed var(--border-color);
+            border-radius: 10px;
+        }
+
+        .batch-remove-btn {
+            border: none;
+            background: transparent;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .nav-btn {
+            margin-top: 13px;
+            min-width: 120px;
+            position: relative;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 17px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            border-color: var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+        
+        .nav-btn.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            color: var(--primary-color);
+        }
+        
+        .nav-btn img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 6px;
+            display: block;
+            margin: 0 auto 5px;
+        }
+        
+        .result-display {
+            flex: 1;
+            background: var(--background-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: auto;
+            position: relative;
+            min-height: 0;
+        }
+        
+        .no-result {
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .no-result i {
+            font-size: 4rem;
+            display: block;
+            margin-bottom: 15px;
+        }
+        
+        /* 3D Viewer Canvas */
+        #result-display canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid rgba(102, 126, 234, 0.1);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .settings-panel {
+                flex: none;
+            }
+            
+            .result-panel {
+                min-height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Container -->
+        <div class="header-container" id="header-container">
+            <!-- Header -->
+            <div class="header">
+                <a href="{{ url_for('index') }}" class="back-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <h1><i class="fas fa-cube"></i> 图/文 3D模型生成</h1>
+                <p style="color: white; opacity: 0.9;">3D模型生成平台</p>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('items', this)">
+                    <i class="fas fa-cube"></i> 物品生成
+                </button>
+                <button class="tab-btn" onclick="switchTab('batch', this)">
+                    <i class="fas fa-layer-group"></i> 批量生成
+                </button>
+                <button class="tab-btn" onclick="switchTab('scenes', this)">
+                    <i class="fas fa-landmark"></i> 场景生成
+                </button>
+                <button class="tab-btn" onclick="switchTab('upload', this)">
+                    <i class="fas fa-upload"></i> 上传文件
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Settings Panel -->
+            <div class="settings-panel">
+                <!-- Settings Header -->
+                <div class="settings-header" id="settings-header">
+                    <label style="font-size: 1.5rem;" id="settings-title"><i class="fas fa-cog"></i> 生成设置</label>
+                    <div class="input-group" id="settings-options">
+                        <div class="radio-option">
+                            <input type="radio" id="text-gen" name="gen-type" value="text" checked>
+                            <label for="text-gen">文字生成</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="single-img" name="gen-type" value="single">
+                            <label for="single-img">单张图片</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="multi-img" name="gen-type" value="multi">
+                            <label for="multi-img">多角度</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Items Generation Settings -->
+                <div id="items-settings" class="settings-content">
+                    <div class="form-group">
+                        <label>名称 <span style="color: red;">*</span></label>
+                        <input type="text" class="name-input" id="item-name" placeholder="请输入名称" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>输入内容</label>
+                        <div id="input-area"></div>
+                        <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+                    </div>
+
+                    <div class="advanced-toggle">
+                        <span class="advanced-btn" onclick="toggleAdvanced()">
+                            <i class="fas fa-chevron-down"></i> 高级设置
+                        </span>
+                    </div>
+
+                    <div class="advanced-settings" id="advanced-settings">
+                        <div class="setting-row">
+                            <label>质量</label>
+                            <select id="quality">
+                                <option value="low">低质量</option>
+                                <option value="standard" selected>标准</option>
+                                <option value="high">高质量</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <label>随机种子</label>
+                            <input type="number" id="seed" value="1234">
+                        </div>
+                        <div class="setting-row">
+                            <label>八叉树分辨率</label>
+                            <input type="number" id="octree-resolution" value="128">
+                        </div>
+                        <div class="setting-row">
+                            <label>推理步数</label>
+                            <input type="number" id="steps" value="5">
+                        </div>
+                        <div class="setting-row">
+                            <label>引导尺度</label>
+                            <input type="number" id="guidance" step="0.1" value="5.0">
+                        </div>
+                        <div class="setting-row">
+                            <label>最大面数</label>
+                            <input type="number" id="max-faces" value="40000">
+                        </div>
+                        <div class="setting-row">
+                            <label>输出格式</label>
+                            <select id="output-format">
+                                <option value="glb">GLB</option>
+                                <option value="gltf">GLTF</option>
+                                <option value="obj">OBJ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="generate-btn" onclick="generateItem()">
+                        <i class="fas fa-magic"></i> 开始生成
+                    </button>
+
+                    <div class="status-message" id="status-message"></div>
+                </div>
+
+                <!-- Batch Generation Settings -->
+                <div id="batch-settings" class="settings-content" style="display: none;">
+                    <div class="form-group">
+                        <label>名称 <span style="color: red;">*</span></label>
+                        <input type="text" class="name-input" id="batch-item-name" placeholder="请输入名称" required>
+                    </div>
+                    <div class="form-group">
+                        <label>输入内容</label>
+                        <div id="batch-input-area"></div>
+                        <input type="file" id="batch-file-input" multiple accept="image/*" style="display: none;">
+                    </div>
+                    <div class="batch-action-row">
+                        <button class="generate-btn secondary" type="button" onclick="addCurrentItemToBatch()">
+                            <i class="fas fa-list"></i> 批量生成按钮
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scenes Generation Settings -->
+                <div id="scenes-settings" class="settings-content" style="display: none;">
+                    <div class="form-group">
+                        <label>名称 <span style="color: red;">*</span></label>
+                        <input type="text" class="name-input" id="scene-name" placeholder="请输入名称" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>场景图片</label>
+                        <div id="scene-images-container">
+                            <!-- Dynamic image upload areas will be added here -->
+                        </div>
+                    </div>
+
+                    <button class="generate-btn" onclick="generateScene()">
+                        <i class="fas fa-magic"></i> 开始生成
+                    </button>
+
+                    <div class="status-message" id="scene-status-message"></div>
+                </div>
+
+                <!-- Upload File Settings -->
+                <div id="upload-settings" class="settings-content" style="display: none;">
+                    <div class="form-group">
+                        <label>名称 <span style="color: red;">*</span></label>
+                        <input type="text" class="name-input" id="upload-name" placeholder="请输入名称" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>类别 <span style="color: red;">*</span></label>
+                        <div class="input-group">
+                            <div class="radio-option">
+                                <input type="radio" id="upload-item" name="upload-category" value="item" checked>
+                                <label for="upload-item">物品</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="upload-scene" name="upload-category" value="scene">
+                                <label for="upload-scene">场景</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>3D模型文件 <span style="color: red;">*</span></label>
+                        <div class="image-upload-area" id="model-upload-area" style="min-height: 200px;">
+                            <div class="upload-placeholder">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>点击或拖拽上传3D模型文件</p>
+                                <p style="font-size: 12px; color: #8d99ae; margin-top: 10px;">支持格式：GLB, GLTF, OBJ</p>
+                            </div>
+                        </div>
+                        <input type="file" id="model-file-input" accept=".glb,.gltf,.obj" style="display: none;">
+                    </div>
+
+                    <div class="status-message" id="upload-status-message"></div>
+
+                    <button class="generate-btn" onclick="confirmUpload()" id="confirm-upload-btn">
+                        <i class="fas fa-check"></i> 确认上传
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Panel -->
+            <div class="result-panel">
+                <div class="result-header">
+                    <h2>
+                        <span><i class="fas fa-image"></i> 生成结果</span>
+                        <button class="refresh-btn" onclick="refreshSessionFiles()" id="refresh-btn">
+                            <span class="fas fa-refresh"></span> 刷新
+                        </button>
+                    </h2>
+                    <div class="result-nav" id="result-nav">
+                        <!-- Navigation buttons will be added dynamically -->
+                    </div>
+                </div>
+                <div class="result-body">
+                    <div class="result-display" id="result-display">
+                        <div class="no-result">
+                            <i class="fas fa-cube"></i>
+                            <p>生成结果将显示在这里</p>
+                        </div>
+                    </div>
+                    <div class="result-display" id="batch-queue-display" style="display: none; align-items: stretch;">
+                        <div style="width: 100%;">
+                            <div class="batch-list-header" style="margin-bottom: 14px;">
+                                <span><i class="fas fa-layer-group"></i> 批量生成列表</span>
+                                <button class="generate-btn" id="batch-generate-once-btn" type="button" onclick="processBatchQueue()" style="width: auto; margin: 0; padding: 8px 12px;">
+                                    <i class="fas fa-robot"></i> 自动检测中
+                                </button>
+                            </div>
+                            <div class="batch-list" id="batch-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // ModelViewer class using Three.js
+        class ModelViewer {
+            constructor(container) {
+                this.container = container;
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.model = null;
+                this.modelContainer = null;
+                this.mixers = [];
+                this.clock = new THREE.Clock();
+                this.animateId = null;
+                
+                this.init();
+            }
+            
+            init() {
+                // Create scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0xf8f9fa);
+                
+                // Setup camera
+                const aspect = this.container.clientWidth / this.container.clientHeight;
+                this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+                this.camera.position.set(0, 0, 5);
+                
+                // Create renderer with texture support
+                this.renderer = new THREE.WebGLRenderer({ 
+                    antialias: true, 
+                    alpha: true,
+                    preserveDrawingBuffer: true // Preserve for texture rendering
+                });
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                
+                // Enable shadow rendering for better texture detail
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                // Set output encoding for proper texture color rendering
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+                
+                // Enable tone mapping for HDR textures
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1.4;
+                
+                this.container.appendChild(this.renderer.domElement);
+                
+                // Add lights
+                this.setupLights();
+                
+                // Add orbit controls for manual interaction
+                // Disable auto rotate to let model rotate instead of camera
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.enableZoom = true;
+                this.controls.autoRotate = false; // Disabled - model rotates instead
+                this.controls.autoRotateSpeed = 0;
+                
+                // Handle window resize - bind to instance
+                this.boundHandleResize = () => this.handleResize();
+                window.addEventListener('resize', this.boundHandleResize);
+                
+                // Start animation loop
+                this.animate();
+            }
+            
+            setupLights() {
+                // Ambient light for general illumination
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambientLight);
+                
+                // Main directional light (front light)
+                const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+                mainLight.position.set(0, 0, 5);
+                mainLight.castShadow = true;
+                mainLight.shadow.mapSize.width = 2048;
+                mainLight.shadow.mapSize.height = 2048;
+                mainLight.shadow.camera.near = 0.5;
+                mainLight.shadow.camera.far = 50;
+                mainLight.shadow.camera.left = -10;
+                mainLight.shadow.camera.right = 10;
+                mainLight.shadow.camera.top = 10;
+                mainLight.shadow.camera.bottom = -10;
+                mainLight.userData.originalIntensity = 1;
+                this.scene.add(mainLight);
+                
+                // Top-down directional light (from above)
+                const topLight = new THREE.DirectionalLight(0xffffff, 0.9);
+                topLight.position.set(0, 5, 0);
+                topLight.target.position.set(0, 0, 0);
+                topLight.userData.originalIntensity = 0.9;
+                this.scene.add(topLight);
+                this.scene.add(topLight.target);
+
+                // Fill light from the side
+                const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                fillLight.position.set(-3, 2, 3);
+                fillLight.userData.originalIntensity = 0.3;
+                this.scene.add(fillLight);
+                
+                // Rim light from behind
+                const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+                rimLight.position.set(0, 0, -5);
+                rimLight.userData.originalIntensity = 0.2;
+                this.scene.add(rimLight);
+            }
+            
+            loadModel(url) {
+                return new Promise((resolve, reject) => {
+                    // Create a loading manager to track texture loading
+                    const loadingManager = new THREE.LoadingManager();
+                    loadingManager.onProgress = (url, loaded, total) => {
+                        console.log(`Loading progress: ${Math.round(loaded / total * 100)}%`);
+                    };
+                    
+                    const loader = new THREE.GLTFLoader(loadingManager);
+                    
+                    loader.load(
+                        url,
+                        (gltf) => {
+                            // Remove previous model and container if exists
+                            if (this.modelContainer) {
+                                this.scene.remove(this.modelContainer);
+                            }
+                            // Clean up mixers
+                            this.mixers.forEach(mixer => mixer.stopAllAction());
+                            this.mixers = [];
+                            
+                            this.model = gltf.scene;
+                            
+                            // Traverse the model and ensure all materials are properly configured
+                            this.model.traverse((child) => {
+                                if (child.isMesh) {
+                                    // Ensure material exists and textures are loaded
+                                    if (child.material) {
+                                        // Handle array of materials
+                                        const materials = Array.isArray(child.material) ? child.material : [child.material];
+                                        materials.forEach(material => {
+                                            // Set texture encoding for proper color rendering
+                                            if (material.map) {
+                                                material.map.needsUpdate = true;
+                                                material.map.encoding = THREE.sRGBEncoding;
+                                            }
+                                            if (material.emissiveMap) {
+                                                material.emissiveMap.needsUpdate = true;
+                                                material.emissiveMap.encoding = THREE.sRGBEncoding;
+                                            }
+                                            if (material.normalMap) {
+                                                material.normalMap.needsUpdate = true;
+                                            }
+                                            if (material.roughnessMap) {
+                                                material.roughnessMap.needsUpdate = true;
+                                            }
+                                            if (material.metalnessMap) {
+                                                material.metalnessMap.needsUpdate = true;
+                                            }
+                                            if (material.aoMap) {
+                                                material.aoMap.needsUpdate = true;
+                                            }
+                                        });
+                                        
+                                        // Enable shadows for better rendering
+                                        child.castShadow = true;
+                                        child.receiveShadow = true;
+                                    }
+                                }
+                            });
+                            
+                            console.log('Model loaded with textures');
+                            console.log('Textures:', this.model.children);
+                            
+                            // Create a container group for the model
+                            this.modelContainer = new THREE.Group();
+                            
+                            // Calculate bounding box for camera positioning
+                            const box = new THREE.Box3().setFromObject(this.model);
+                            const center = box.getCenter(new THREE.Vector3());
+                            const size = box.getSize(new THREE.Vector3());
+                            
+                            // Center the model
+                            this.model.position.sub(center);
+                            
+                            // Add model to container
+                            this.modelContainer.add(this.model);
+                            
+                            // Add container to scene
+                            this.scene.add(this.modelContainer);
+                            
+                            // Adjust camera to fit model
+                            const maxDim = Math.max(size.x, size.y, size.z);
+                            const distance = maxDim * 2;
+                            this.camera.position.set(0, 0, distance);
+                            this.camera.lookAt(0, 0, 0);
+                            
+                            // Setup animations if available
+                            if (gltf.animations && gltf.animations.length > 0) {
+                                const mixer = new THREE.AnimationMixer(this.model);
+                                gltf.animations.forEach((clip) => {
+                                    mixer.clipAction(clip).play();
+                                });
+                                this.mixers.push(mixer);
+                            }
+                            
+                            resolve(this.model);
+                        },
+                        undefined,
+                        (error) => {
+                            console.error('Error loading model:', error);
+                            reject(error);
+                        }
+                    );
+                });
+            }
+            
+            handleResize() {
+                if (!this.container || !this.container.clientWidth) return;
+                
+                const width = this.container.clientWidth;
+                const height = this.container.clientHeight;
+                
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(width, height);
+            }
+            
+            animate() {
+                this.animateId = requestAnimationFrame(() => this.animate());
+                
+                const delta = this.clock.getDelta();
+                
+                // Update animation mixers
+                this.mixers.forEach(mixer => mixer.update(delta));
+                
+                // Rotate model container (Y-axis rotation)
+                if (this.modelContainer) {
+                    this.modelContainer.rotation.y += 0.01;
+                }
+                
+                // Update controls
+                this.controls.update();
+                
+                // Render
+                this.renderer.render(this.scene, this.camera);
+            }
+            
+            destroy() {
+                // Stop animation loop
+                if (this.animateId) {
+                    cancelAnimationFrame(this.animateId);
+                }
+                
+                // Remove event listeners
+                if (this.boundHandleResize) {
+                    window.removeEventListener('resize', this.boundHandleResize);
+                }
+                
+                // Dispose of controls
+                if (this.controls) {
+                    this.controls.dispose();
+                }
+                
+                // Clean up mixers
+                this.mixers.forEach(mixer => mixer.stopAllAction());
+                this.mixers = [];
+                
+                // Dispose model materials and clear container
+                if (this.modelContainer) {
+                    this.modelContainer.traverse((object) => {
+                        if (object.isMesh) {
+                            object.geometry.dispose();
+                            if (object.material) {
+                                if (Array.isArray(object.material)) {
+                                    object.material.forEach(material => material.dispose());
+                                } else {
+                                    object.material.dispose();
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Clear the container
+                if (this.container && this.renderer && this.renderer.domElement) {
+                    this.container.removeChild(this.renderer.domElement);
+                }
+                
+                // Dispose of renderer resources
+                if (this.renderer) {
+                    this.renderer.dispose();
+                }
+            }
+        }
+        
+        let currentTab = 'items';
+        let uploadedImages = [];
+        let sceneImages = [];
+        let sceneImageCount = 0;
+        let resultFiles = { images: [], models: [] };
+        let currentModelViewer = null;
+        let pendingModelRenderTimeout = null;
+        let modelRenderRequestVersion = 0;
+        let isGenerating = false; // Flag to prevent duplicate requests
+        let currentSessionId = null; // Current session ID
+        let batchGenerateQueue = [];
+        let batchGenerateSequence = 1;
+        let batchUploadedImages = [];
+        let batchMultiViewImages = {
+            front: null,
+            back: null,
+            left: null,
+            right: null
+        };
+        let batchTaskProcessing = false;
+        let batchQueueWatcher = null;
+        let lastItemGenerationSuccess = null;
+
+        // Load session ID from localStorage on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            currentSessionId = localStorage.getItem('last_session_id');
+            if (currentSessionId) {
+                console.log('Loaded session ID:', currentSessionId);
+            }
+        });
+
+        // Generate UUID function (compatible with all browsers)
+        function generateUUID() {
+            if (crypto && crypto.randomUUID) {
+                return crypto.randomUUID();
+            }
+            // Fallback for browsers that don't support crypto.randomUUID
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function setGenerationProgress(statusMsg, message, progress) {
+            const safeProgress = Math.max(0, Math.min(100, Math.round(progress || 0)));
+            statusMsg.className = 'status-message show generating';
+            statusMsg.style.display = 'block';
+            statusMsg.innerHTML = `
+                <div>${message || '生成中，请稍候...'}</div>
+                <div class="status-progress-wrap">
+                    <div class="status-progress-bar">
+                        <div class="status-progress-fill" style="width: ${safeProgress}%"></div>
+                    </div>
+                    <span class="status-progress-text">${safeProgress}%</span>
+                </div>
+            `;
+        }
+
+        async function pollMainTaskProgress(mainServiceId, statusMsg) {
+            const maxAttempts = 180; // 6 minutes at 2s interval
+            for (let attempts = 0; attempts < maxAttempts; attempts++) {
+                const res = await fetch(`/api/main/progress/${mainServiceId}`);
+                if (!res.ok) {
+                    throw new Error('获取任务进度失败');
+                }
+                const progressData = await res.json();
+                setGenerationProgress(statusMsg, progressData.message, progressData.progress);
+
+                if (progressData.status === 'completed') {
+                    return progressData;
+                }
+                if (progressData.status === 'failed') {
+                    throw new Error(progressData.error || progressData.message || '生成失败');
+                }
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            throw new Error('生成超时，请稍后刷新结果');
+        }
+
+        // Match header container width to main content width
+        function matchHeaderWidth() {
+            const mainContent = document.querySelector('.main-content');
+            const headerContainer = document.getElementById('header-container');
+            if (mainContent && headerContainer) {
+                headerContainer.style.width = mainContent.offsetWidth + 'px';
+            }
+        }
+
+        // Call on load and resize
+        window.addEventListener('load', matchHeaderWidth);
+        window.addEventListener('resize', matchHeaderWidth);
+
+        // Tab switching
+        function switchTab(tab, eventElement) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (eventElement) {
+                eventElement.classList.add('active');
+            }
+            
+            document.getElementById('items-settings').style.display = tab === 'items' ? 'block' : 'none';
+            document.getElementById('batch-settings').style.display = tab === 'batch' ? 'block' : 'none';
+            document.getElementById('scenes-settings').style.display = tab === 'scenes' ? 'block' : 'none';
+            document.getElementById('upload-settings').style.display = tab === 'upload' ? 'block' : 'none';
+            const resultDisplay = document.getElementById('result-display');
+            const batchQueueDisplay = document.getElementById('batch-queue-display');
+            const resultNav = document.getElementById('result-nav');
+            const refreshBtn = document.getElementById('refresh-btn');
+            
+            // Update settings header based on tab
+            const settingsTitle = document.getElementById('settings-title');
+            const settingsOptions = document.getElementById('settings-options');
+            
+            if (tab === 'batch') {
+                settingsTitle.innerHTML = '<i class="fas fa-layer-group"></i> 批量生成设置';
+                settingsOptions.style.display = 'flex';
+                const resultTitle = document.querySelector('.result-header h2 span');
+                if (resultTitle) {
+                    resultTitle.innerHTML = '<i class="fas fa-list"></i> 批量任务队列';
+                }
+                if (resultDisplay) resultDisplay.style.display = 'none';
+                if (batchQueueDisplay) batchQueueDisplay.style.display = 'flex';
+                if (resultNav) resultNav.style.display = 'none';
+                if (refreshBtn) refreshBtn.style.display = 'none';
+            } else if (tab === 'scenes') {
+                settingsTitle.innerHTML = '<i class="fas fa-images"></i> 场景图片';
+                settingsOptions.style.display = 'none';
+                // Update result panel title
+                const resultTitle = document.querySelector('.result-header h2 span');
+                if (resultTitle) {
+                    resultTitle.innerHTML = '<i class="fas fa-image"></i> 生成结果';
+                }
+                if (resultDisplay) resultDisplay.style.display = 'flex';
+                if (batchQueueDisplay) batchQueueDisplay.style.display = 'none';
+                if (resultNav) resultNav.style.display = 'flex';
+                if (refreshBtn) refreshBtn.style.display = 'inline-flex';
+                // Initialize scene images if not already done
+                const container = document.getElementById('scene-images-container');
+                if (container && container.children.length === 0) {
+                    initializeSceneImages();
+                }
+            } else if (tab === 'upload') {
+                settingsTitle.innerHTML = '<i class="fas fa-upload"></i> 上传文件';
+                settingsOptions.style.display = 'none';
+                // Update result panel title
+                const resultTitle = document.querySelector('.result-header h2 span');
+                if (resultTitle) {
+                    resultTitle.innerHTML = '<i class="fas fa-image"></i> 上传预览';
+                }
+                if (resultDisplay) resultDisplay.style.display = 'flex';
+                if (batchQueueDisplay) batchQueueDisplay.style.display = 'none';
+                if (resultNav) resultNav.style.display = 'flex';
+                if (refreshBtn) refreshBtn.style.display = 'inline-flex';
+                // Initialize upload area
+                if (modelUploadArea && !modelUploadArea.dataset.initialized) {
+                    initializeUploadArea();
+                    modelUploadArea.dataset.initialized = 'true';
+                }
+            } else {
+                settingsTitle.innerHTML = '<i class="fas fa-cog"></i> 生成设置';
+                settingsOptions.style.display = 'flex';
+                // Restore result panel title
+                const resultTitle = document.querySelector('.result-header h2 span');
+                if (resultTitle) {
+                    resultTitle.innerHTML = '<i class="fas fa-image"></i> 生成结果';
+                }
+                if (resultDisplay) resultDisplay.style.display = 'flex';
+                if (batchQueueDisplay) batchQueueDisplay.style.display = 'none';
+                if (resultNav) resultNav.style.display = 'flex';
+                if (refreshBtn) refreshBtn.style.display = 'inline-flex';
+            }
+        }
+
+        // Advanced settings toggle
+        function toggleAdvanced() {
+            const advancedSettings = document.getElementById('advanced-settings');
+            const btn = event.target.closest('.advanced-btn');
+            const icon = btn.querySelector('i');
+            
+            advancedSettings.classList.toggle('show');
+            icon.style.transform = advancedSettings.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        // File upload
+        const fileInput = document.getElementById('file-input');
+        const inputArea = document.getElementById('input-area');
+
+        // Initialize input area based on selected option
+        function initializeInputArea() {
+            const genType = document.querySelector('input[name="gen-type"]:checked').value;
+            updateInputArea(genType);
+        }
+
+        function updateInputArea(genType) {
+            let html = '';
+            
+            if (genType === 'text') {
+                // Text input mode
+                html = `
+                    <textarea class="text-input-area" id="text-prompt" placeholder="例如：一个精致的陶瓷花瓶，简约现代风格"></textarea>
+                `;
+            } else if (genType === 'single') {
+                // Single image upload mode
+                html = `
+                    <div class="image-upload-area" id="single-upload-area">
+                        <div class="upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>点击或拖拽上传图片</p>
+                        </div>
+                    </div>
+                `;
+            } else if (genType === 'multi') {
+                // Multi-view grid mode
+                html = `
+                    <div class="multi-view-grid" id="multi-view-grid">
+                        <div class="multi-view-item" data-view="front" onclick="selectImageView('front')">
+                            <i class="fas fa-image multi-view-placeholder"></i>
+                            <div class="multi-view-label">正面</div>
+                        </div>
+                        <div class="multi-view-item" data-view="back" onclick="selectImageView('back')">
+                            <i class="fas fa-image multi-view-placeholder"></i>
+                            <div class="multi-view-label">背面</div>
+                        </div>
+                        <div class="multi-view-item" data-view="left" onclick="selectImageView('left')">
+                            <i class="fas fa-image multi-view-placeholder"></i>
+                            <div class="multi-view-label">左侧</div>
+                        </div>
+                        <div class="multi-view-item" data-view="right" onclick="selectImageView('right')">
+                            <i class="fas fa-image multi-view-placeholder"></i>
+                            <div class="multi-view-label">右侧</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            inputArea.innerHTML = html;
+            
+            // Setup event listeners based on mode
+            if (genType === 'single') {
+                const uploadArea = document.getElementById('single-upload-area');
+                uploadArea.addEventListener('click', () => {
+                    fileInput.click();
+                });
+                
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.style.borderColor = 'var(--primary-color)';
+                });
+                
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.style.borderColor = 'var(--border-color)';
+                });
+                
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.style.borderColor = 'var(--border-color)';
+                    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                    handleFiles(files);
+                });
+            }
+        }
+
+        const batchFileInput = document.getElementById('batch-file-input');
+        const batchInputArea = document.getElementById('batch-input-area');
+
+        function initializeBatchInputArea() {
+            const genType = document.querySelector('input[name="gen-type"]:checked').value;
+            updateBatchInputArea(genType);
+        }
+
+        function updateBatchInputArea(genType) {
+            let html = '';
+            if (genType === 'text') {
+                html = `
+                    <textarea class="text-input-area" id="batch-text-prompt" placeholder="例如：一个精致的陶瓷花瓶，简约现代风格"></textarea>
+                `;
+            } else if (genType === 'single') {
+                html = `
+                    <div class="image-upload-area" id="batch-single-upload-area">
+                        <div class="upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>点击或拖拽上传图片</p>
+                        </div>
+                    </div>
+                `;
+            } else if (genType === 'multi') {
+                html = `
+                    <div class="multi-view-grid" id="batch-multi-view-grid">
+                        <div class="multi-view-item batch-multi-view-item" data-view="front" onclick="selectBatchImageView('front')">
+                            <i class="fas fa-image multi-view-placeholder"></i>
+                            <div class="multi-view-label">正面</div>
+                        </div>
+                        <div class="multi-view-item batch-multi-view-item" data-view="back" onclick="selectBatchImageView('back')">
+                            <i class="fas fa-image multi-view-placeholder"></i>
+                            <div class="multi-view-label">背面</div>
+                        </div>
+                        <div class="multi-view-item batch-multi-view-item" data-view="left" onclick="selectBatchImageView('left')">
+                            <i class="fas fa-image multi-view-placeholder"></i>
+                            <div class="multi-view-label">左侧</div>
+                        </div>
+                        <div class="multi-view-item batch-multi-view-item" data-view="right" onclick="selectBatchImageView('right')">
+                            <i class="fas fa-image multi-view-placeholder"></i>
+                            <div class="multi-view-label">右侧</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            batchInputArea.innerHTML = html;
+
+            if (genType === 'single') {
+                const uploadArea = document.getElementById('batch-single-upload-area');
+                uploadArea.addEventListener('click', () => batchFileInput.click());
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.style.borderColor = 'var(--primary-color)';
+                });
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.style.borderColor = 'var(--border-color)';
+                });
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.style.borderColor = 'var(--border-color)';
+                    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                    handleBatchFiles(files);
+                });
+                if (batchUploadedImages.length > 0) {
+                    updateBatchSingleImagePreview();
+                }
+            } else if (genType === 'multi') {
+                Object.keys(batchMultiViewImages).forEach(viewType => {
+                    if (batchMultiViewImages[viewType]) {
+                        updateBatchMultiViewPreview(viewType);
+                    }
+                });
+            }
+        }
+
+        function handleBatchFiles(files) {
+            const genType = document.querySelector('input[name="gen-type"]:checked').value;
+            if (genType === 'single' && files.length > 0) {
+                const file = files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64Data = e.target.result.split(',')[1];
+                    batchUploadedImages = [{ file: file, data: base64Data }];
+                    updateBatchSingleImagePreview();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function selectBatchImageView(viewType) {
+            batchFileInput.dataset.currentView = viewType;
+            batchFileInput.click();
+        }
+
+        function updateBatchSingleImagePreview() {
+            const uploadArea = document.getElementById('batch-single-upload-area');
+            if (!uploadArea) return;
+            if (batchUploadedImages.length === 0) {
+                uploadArea.innerHTML = `
+                    <div class="upload-placeholder">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>点击或拖拽上传图片</p>
+                    </div>
+                `;
+                uploadArea.classList.remove('has-content');
+            } else {
+                uploadArea.classList.add('has-content');
+                uploadArea.innerHTML = `
+                    <div class="single-image-preview">
+                        <div class="single-image-item">
+                            <img src="data:image/png;base64,${batchUploadedImages[0].data}" alt="Preview">
+                            <button class="delete-btn" onclick="removeBatchSingleImage()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function removeBatchSingleImage() {
+            batchUploadedImages = [];
+            updateBatchSingleImagePreview();
+        }
+
+        function handleBatchMultiViewFile(viewType, file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64Data = e.target.result.split(',')[1];
+                batchMultiViewImages[viewType] = { file: file, data: base64Data };
+                updateBatchMultiViewPreview(viewType);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateBatchMultiViewPreview(viewType) {
+            const gridItem = document.querySelector(`.batch-multi-view-item[data-view="${viewType}"]`);
+            const imageData = batchMultiViewImages[viewType];
+            if (!gridItem || !imageData) return;
+            gridItem.classList.add('has-image');
+            gridItem.innerHTML = `
+                <img src="data:image/png;base64,${imageData.data}" alt="${viewType}">
+                <div class="multi-view-label">${getViewLabel(viewType)}</div>
+                <button class="multi-view-delete" onclick="removeBatchMultiViewImage('${viewType}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+        }
+
+        function removeBatchMultiViewImage(viewType) {
+            batchMultiViewImages[viewType] = null;
+            const gridItem = document.querySelector(`.batch-multi-view-item[data-view="${viewType}"]`);
+            if (!gridItem) return;
+            gridItem.classList.remove('has-image');
+            gridItem.innerHTML = `
+                <i class="fas fa-image multi-view-placeholder"></i>
+                <div class="multi-view-label">${getViewLabel(viewType)}</div>
+            `;
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            const genType = document.querySelector('input[name="gen-type"]:checked').value;
+            const currentView = fileInput.dataset.currentView;
+            if (genType === 'multi' && currentView) {
+                handleMultiViewFile(currentView, e.target.files[0]);
+            } else {
+                handleFiles(Array.from(e.target.files));
+            }
+        });
+
+        batchFileInput.addEventListener('change', (e) => {
+            const genType = document.querySelector('input[name="gen-type"]:checked').value;
+            const currentView = batchFileInput.dataset.currentView;
+            if (genType === 'multi' && currentView) {
+                handleBatchMultiViewFile(currentView, e.target.files[0]);
+            } else {
+                handleBatchFiles(Array.from(e.target.files));
+            }
+        });
+
+        // Store multi-view images
+        let multiViewImages = {
+            front: null,
+            back: null,
+            left: null,
+            right: null
+        };
+
+        function cloneImagePayload(imagePayload) {
+            if (!imagePayload) {
+                return null;
+            }
+            return {
+                file: imagePayload.file || null,
+                data: imagePayload.data
+            };
+        }
+
+        function buildCurrentItemTask() {
+            const name = document.getElementById('batch-item-name').value.trim();
+            if (!name) {
+                alert('请输入名称');
+                return null;
+            }
+            const genType = document.querySelector('input[name="gen-type"]:checked').value;
+            const task = {
+                id: `batch-${Date.now()}-${batchGenerateSequence++}`,
+                name: name,
+                genType: genType,
+                status: 'pending',
+                createdAt: Date.now()
+            };
+
+            if (genType === 'text') {
+                const textPrompt = document.getElementById('batch-text-prompt');
+                if (!textPrompt || !textPrompt.value.trim()) {
+                    alert('请输入文字描述');
+                    return null;
+                }
+                task.textPrompt = textPrompt.value.trim();
+            } else if (genType === 'single') {
+                if (batchUploadedImages.length === 0) {
+                    alert('请上传图片');
+                    return null;
+                }
+                task.uploadedImages = batchUploadedImages.map(cloneImagePayload);
+            } else if (genType === 'multi') {
+                const hasImages = Object.values(batchMultiViewImages).some(img => img !== null);
+                if (!hasImages) {
+                    alert('请至少上传一张图片');
+                    return null;
+                }
+                task.multiViewImages = {
+                    front: cloneImagePayload(batchMultiViewImages.front),
+                    back: cloneImagePayload(batchMultiViewImages.back),
+                    left: cloneImagePayload(batchMultiViewImages.left),
+                    right: cloneImagePayload(batchMultiViewImages.right)
+                };
+            }
+
+            return task;
+        }
+
+        function renderBatchList() {
+            const list = document.getElementById('batch-list');
+            if (!list) {
+                return;
+            }
+
+            if (batchGenerateQueue.length === 0) {
+                list.innerHTML = `<div class="batch-empty">暂无批量任务，先在左侧填写并点击“批量生成按钮”。</div>`;
+                return;
+            }
+
+            list.innerHTML = batchGenerateQueue.map((task, index) => `
+                <div class="batch-item">
+                    <div>
+                        <div class="batch-item-title">${index + 1}. ${task.name}</div>
+                        <div class="batch-item-meta">模式：${task.genType === 'text' ? '文字生成' : (task.genType === 'single' ? '单张图片' : '多角度')} ｜ 状态：${task.status === 'pending' ? '待处理' : (task.status === 'processing' ? '生成中' : (task.status === 'completed' ? '已完成' : '失败'))}</div>
+                    </div>
+                    <button class="batch-remove-btn" type="button" onclick="removeBatchTask('${task.id}')" title="移除" ${task.status === 'processing' ? 'disabled' : ''}>
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addCurrentItemToBatch() {
+            const task = buildCurrentItemTask();
+            if (!task) {
+                return;
+            }
+            batchGenerateQueue.push(task);
+            renderBatchList();
+            processBatchQueue();
+        }
+
+        function removeBatchTask(taskId) {
+            batchGenerateQueue = batchGenerateQueue.filter(task => task.id !== taskId);
+            renderBatchList();
+        }
+
+        function applyBatchTaskToForm(task) {
+            document.getElementById('item-name').value = task.name || '';
+            const typeToId = {
+                text: 'text-gen',
+                single: 'single-img',
+                multi: 'multi-img'
+            };
+            const radio = document.getElementById(typeToId[task.genType] || 'text-gen');
+            if (radio) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change'));
+            } else {
+                initializeInputArea();
+            }
+
+            if (task.genType === 'text') {
+                const textPrompt = document.getElementById('text-prompt');
+                if (textPrompt) {
+                    textPrompt.value = task.textPrompt || '';
+                }
+            } else if (task.genType === 'single') {
+                uploadedImages = (task.uploadedImages || []).map(cloneImagePayload).filter(Boolean);
+                updateSingleImagePreview();
+            } else if (task.genType === 'multi') {
+                multiViewImages = {
+                    front: cloneImagePayload(task.multiViewImages?.front),
+                    back: cloneImagePayload(task.multiViewImages?.back),
+                    left: cloneImagePayload(task.multiViewImages?.left),
+                    right: cloneImagePayload(task.multiViewImages?.right)
+                };
+                Object.keys(multiViewImages).forEach(viewType => {
+                    if (multiViewImages[viewType]) {
+                        updateMultiViewPreview(viewType);
+                    }
+                });
+            }
+        }
+
+        async function processBatchQueue() {
+            if (batchTaskProcessing || isGenerating) {
+                return;
+            }
+
+            const pendingTask = batchGenerateQueue.find(task => task.status === 'pending');
+            if (!pendingTask) {
+                return;
+            }
+
+            batchTaskProcessing = true;
+            pendingTask.status = 'processing';
+            renderBatchList();
+
+            const onceBtn = document.getElementById('batch-generate-once-btn');
+            if (onceBtn) {
+                onceBtn.disabled = true;
+                onceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 自动处理中';
+            }
+
+            applyBatchTaskToForm(pendingTask);
+            switchTab('items', document.querySelector('.tab-btn[onclick*="items"]'));
+            lastItemGenerationSuccess = null;
+
+            try {
+                await generateItem();
+                pendingTask.status = lastItemGenerationSuccess === false ? 'failed' : 'completed';
+            } catch (error) {
+                pendingTask.status = 'failed';
+            } finally {
+                batchTaskProcessing = false;
+                renderBatchList();
+                if (onceBtn) {
+                    onceBtn.disabled = false;
+                    onceBtn.innerHTML = '<i class="fas fa-robot"></i> 自动检测中';
+                }
+            }
+        }
+
+        function startBatchQueueWatcher() {
+            if (batchQueueWatcher) {
+                return;
+            }
+            batchQueueWatcher = setInterval(() => {
+                processBatchQueue();
+            }, 1500);
+            processBatchQueue();
+        }
+
+        function handleFiles(files) {
+            const genType = document.querySelector('input[name="gen-type"]:checked').value;
+            
+            if (genType === 'single') {
+                // Handle single image
+                if (files.length > 0) {
+                    const file = files[0];
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        // Extract base64 data from data URL
+                        const dataUrl = e.target.result;
+                        const base64Data = dataUrl.split(',')[1];
+                        
+                        uploadedImages = [{
+                            file: file,
+                            data: base64Data
+                        }];
+                        updateSingleImagePreview();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        function handleMultiViewFile(viewType, file) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                // Extract base64 data from data URL
+                const dataUrl = e.target.result;
+                const base64Data = dataUrl.split(',')[1];
+                
+                multiViewImages[viewType] = {
+                    file: file,
+                    data: base64Data
+                };
+                updateMultiViewPreview(viewType);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function selectImageView(viewType) {
+            fileInput.dataset.currentView = viewType;
+            fileInput.click();
+        }
+
+        function updateSingleImagePreview() {
+            const uploadArea = document.getElementById('single-upload-area');
+            if (uploadedImages.length === 0) {
+                uploadArea.innerHTML = `
+                    <div class="upload-placeholder">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>点击或拖拽上传图片</p>
+                    </div>
+                `;
+                uploadArea.classList.remove('has-content');
+            } else {
+                uploadArea.classList.add('has-content');
+                uploadArea.innerHTML = `
+                    <div class="single-image-preview">
+                        <div class="single-image-item">
+                            <img src="data:image/png;base64,${uploadedImages[0].data}" alt="Preview">
+                            <button class="delete-btn" onclick="removeSingleImage()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function removeSingleImage() {
+            uploadedImages = [];
+            updateSingleImagePreview();
+        }
+
+        function updateMultiViewPreview(viewType) {
+            const gridItem = document.querySelector(`.multi-view-item[data-view="${viewType}"]`);
+            const imageData = multiViewImages[viewType];
+            
+            if (imageData) {
+                gridItem.classList.add('has-image');
+                gridItem.innerHTML = `
+                    <img src="data:image/png;base64,${imageData.data}" alt="${viewType}">
+                    <div class="multi-view-label">${getViewLabel(viewType)}</div>
+                    <button class="multi-view-delete" onclick="removeMultiViewImage('${viewType}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+            }
+        }
+
+        function removeMultiViewImage(viewType) {
+            multiViewImages[viewType] = null;
+            const gridItem = document.querySelector(`.multi-view-item[data-view="${viewType}"]`);
+            gridItem.classList.remove('has-image');
+            gridItem.innerHTML = `
+                <i class="fas fa-image multi-view-placeholder"></i>
+                <div class="multi-view-label">${getViewLabel(viewType)}</div>
+            `;
+        }
+
+        function getViewLabel(viewType) {
+            const labels = {
+                'front': '正面',
+                'back': '背面',
+                'left': '左侧',
+                'right': '右侧'
+            };
+            return labels[viewType] || viewType;
+        }
+
+        // Generate type change
+        document.querySelectorAll('input[name="gen-type"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (currentTab === 'batch') {
+                    batchUploadedImages = [];
+                    batchMultiViewImages = { front: null, back: null, left: null, right: null };
+                    initializeBatchInputArea();
+                } else {
+                    uploadedImages = [];
+                    multiViewImages = { front: null, back: null, left: null, right: null };
+                    initializeInputArea();
+                }
+            });
+        });
+
+        // Initialize on page load
+        initializeInputArea();
+        initializeBatchInputArea();
+        updateResultNav();
+        renderBatchList();
+        startBatchQueueWatcher();
+
+        // Scene image management
+        function initializeSceneImages() {
+            const container = document.getElementById('scene-images-container');
+            // Add first empty upload area
+            const uploadArea = createSceneUploadArea(0);
+            container.appendChild(uploadArea);
+        }
+
+        function createSceneUploadArea(index) {
+            const uploadItem = document.createElement('div');
+            uploadItem.className = 'scene-upload-item';
+            uploadItem.dataset.index = index;
+            
+            const placeholder = document.createElement('div');
+            placeholder.className = 'scene-upload-placeholder';
+            placeholder.innerHTML = `
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>点击或拖曳上传图片</p>
+            `;
+            
+            placeholder.addEventListener('click', () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            // Extract base64 data from data URL
+                            const dataUrl = e.target.result;
+                            const base64Data = dataUrl.split(',')[1];
+                            
+                            sceneImages[index] = {
+                                file: file,
+                                data: base64Data
+                            };
+                            updateSceneUploadArea(uploadItem, sceneImages[index], index);
+                            // Add new empty upload area if there's space
+                            addNextSceneUploadArea();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+                input.click();
+            });
+            
+            uploadItem.appendChild(placeholder);
+            return uploadItem;
+        }
+
+        function updateSceneUploadArea(uploadItem, imageData, index) {
+            uploadItem.classList.add('has-image');
+            uploadItem.innerHTML = `
+                <img src="data:image/png;base64,${imageData.data}" alt="Scene ${index + 1}">
+                <button class="delete-scene-image" onclick="removeSceneImage(${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+        }
+
+        function addNextSceneUploadArea() {
+            if (sceneImages.length < 10) { // Limit to 10 images
+                const container = document.getElementById('scene-images-container');
+                const nextIndex = sceneImages.length;
+                const uploadArea = createSceneUploadArea(nextIndex);
+                container.appendChild(uploadArea);
+            }
+        }
+
+        function removeSceneImage(index) {
+            sceneImages.splice(index, 1);
+            // Rebuild the entire container
+            rebuildSceneImagesContainer();
+        }
+
+        function rebuildSceneImagesContainer() {
+            const container = document.getElementById('scene-images-container');
+            container.innerHTML = '';
+            
+            // Add upload areas for existing images
+            sceneImages.forEach((img, index) => {
+                const uploadItem = document.createElement('div');
+                uploadItem.className = 'scene-upload-item has-image';
+                uploadItem.dataset.index = index;
+                uploadItem.innerHTML = `
+                    <img src="${img.data}" alt="Scene ${index + 1}">
+                    <button class="delete-scene-image" onclick="removeSceneImage(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(uploadItem);
+            });
+            
+            // Add an empty upload area at the end if there's space
+            if (sceneImages.length < 10) {
+                const uploadArea = createSceneUploadArea(sceneImages.length);
+                container.appendChild(uploadArea);
+            }
+        }
+
+        // Generate functions
+        async function generateItem() {
+            // Prevent duplicate requests
+            if (isGenerating) {
+                return;
+            }
+            lastItemGenerationSuccess = false;
+
+            // Generate and save session ID immediately
+            const sessionId = generateUUID();
+            currentSessionId = sessionId;
+            localStorage.setItem('last_session_id', sessionId);
+            console.log('Saved session ID:', sessionId);
+
+            // Disable button and show loading state
+            isGenerating = true;
+            const generateBtn = document.querySelector('#items-settings .generate-btn');
+            if (generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+            }
+
+            const name = document.getElementById('item-name').value;
+            console.log('📝 [名称输入] 用户输入的名称:', name);
+            if (!name) {
+                alert('请输入名称');
+                // Restore button state on validation failure
+                isGenerating = false;
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-magic"></i> 开始生成';
+                }
+                return;
+            }
+
+            const genType = document.querySelector('input[name="gen-type"]:checked').value;
+            
+            // Check if images are uploaded based on mode
+            if (genType === 'text') {
+                const textPrompt = document.getElementById('text-prompt');
+                if (textPrompt && !textPrompt.value.trim()) {
+                    alert('请输入文字描述');
+                    // Restore button state on validation failure
+                    isGenerating = false;
+                    if (generateBtn) {
+                        generateBtn.disabled = false;
+                        generateBtn.innerHTML = '<i class="fas fa-magic"></i> 开始生成';
+                    }
+                    return;
+                }
+            } else if (genType === 'single') {
+                if (uploadedImages.length === 0) {
+                    alert('请上传图片');
+                    // Restore button state on validation failure
+                    isGenerating = false;
+                    if (generateBtn) {
+                        generateBtn.disabled = false;
+                        generateBtn.innerHTML = '<i class="fas fa-magic"></i> 开始生成';
+                    }
+                    return;
+                }
+            } else if (genType === 'multi') {
+                const hasImages = Object.values(multiViewImages).some(img => img !== null);
+                if (!hasImages) {
+                    alert('请至少上传一张图片');
+                    // Restore button state on validation failure
+                    isGenerating = false;
+                    if (generateBtn) {
+                        generateBtn.disabled = false;
+                        generateBtn.innerHTML = '<i class="fas fa-magic"></i> 开始生成';
+                    }
+                    return;
+                }
+            }
+
+            const params = {
+                name: name,
+                type: genType,
+                seed: document.getElementById('seed').value,
+                octree_resolution: document.getElementById('octree-resolution').value,
+                steps: document.getElementById('steps').value,
+                guidance: document.getElementById('guidance').value,
+                max_faces: document.getElementById('max-faces').value,
+                output_format: document.getElementById('output-format').value
+            };
+            
+            // Add text prompt if in text mode
+            if (genType === 'text') {
+                const textPrompt = document.getElementById('text-prompt');
+                if (textPrompt) {
+                    params.text_prompt = textPrompt.value;
+                }
+            }
+
+            const statusMsg = document.getElementById('status-message');
+            setGenerationProgress(statusMsg, '任务已创建，准备开始...', 1);
+            
+            try {
+                let apiEndpoint = '';
+                // Get quality from advanced settings
+                const quality = document.getElementById('quality').value;
+                const mainServiceId = generateUUID();
+                let requestData = {
+                    quality: quality,
+                    session_id: sessionId,
+                    main_service_id: mainServiceId
+                };
+
+                // Prepare request based on generation type
+                if (genType === 'text') {
+                    // Text to Model
+                    apiEndpoint = '/api/main/text_to_model';
+                    const textPrompt = document.getElementById('text-prompt');
+                    requestData.text = textPrompt.value;
+                    requestData.use_volcano = true;
+                    requestData.name = name; // Pass name to API
+                    console.log('📤 [文本生成] 准备发送请求，名称参数:', name);
+                } else if (genType === 'single') {
+                    // Single Image to Model
+                    apiEndpoint = '/api/main/single_image_to_model';
+                    requestData.image_base64 = uploadedImages[0].data;
+                    requestData.name = name; // Pass name to API
+                    console.log('📤 [单图生成] 准备发送请求，名称参数:', name);
+                } else if (genType === 'multi') {
+                    // Multi Image to Model
+                    apiEndpoint = '/api/main/multi_image_to_model';
+                    requestData.images_base64 = Object.values(multiViewImages)
+                        .filter(img => img !== null)
+                        .map(img => img.data);
+                    requestData.name = name; // Pass name to API
+                    console.log('📤 [多图生成] 准备发送请求，名称参数:', name);
+                }
+
+                // Call API
+                console.log('🚀 [API调用] 发送到:', apiEndpoint);
+                console.log('📋 [API调用] 请求数据:', {
+                    ...requestData,
+                    image_base64: requestData.image_base64 ? '[Base64数据已包含]' : undefined,
+                    images_base64: requestData.images_base64 ? `[${requestData.images_base64.length}张图片]` : undefined,
+                    text: requestData.text ? requestData.text.substring(0, 50) + '...' : undefined
+                });
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('📥 [API响应] 接收状态:', response.status);
+                const result = await response.json();
+                console.log('📥 [API响应] 响应数据:', result);
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                const finalMainServiceId = result.main_service_id || mainServiceId;
+                const progressResult = await pollMainTaskProgress(finalMainServiceId, statusMsg);
+
+                statusMsg.className = 'status-message show';
+                statusMsg.style.display = 'none';
+
+                let texturedMeshUrl = '';
+                if (progressResult.result && progressResult.result.textured_mesh) {
+                    texturedMeshUrl = progressResult.result.textured_mesh;
+                    addResult('model', `/api/file/${texturedMeshUrl}`, '最终结果');
+                } else {
+                    const checkResponse = await fetch(`/api/session/${sessionId}`);
+                    const sessionData = await checkResponse.json();
+                    const finalModel = (sessionData.files || []).find(file => file.label === '最终结果');
+                    if (finalModel) {
+                        texturedMeshUrl = finalModel.path;
+                        addResult('model', `/api/file/${finalModel.path}`, '最终结果');
+                    }
+                }
+
+                if (texturedMeshUrl) {
+                    try {
+                        await fetch('/api/database/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: sessionId,
+                                category: 'item',
+                                name: name,
+                                file_url: texturedMeshUrl
+                            })
+                        });
+                    } catch (dbError) {
+                        console.error('❌ [数据库保存] 保存失败:', dbError);
+                    }
+                }
+                lastItemGenerationSuccess = true;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                statusMsg.textContent = `生成失败：${error.message}`;
+                statusMsg.className = 'status-message show';
+                statusMsg.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+                statusMsg.style.color = '#721c24';
+                lastItemGenerationSuccess = false;
+            } finally {
+                // Reset generating flag and restore button
+                isGenerating = false;
+                const generateBtn = document.querySelector('#items-settings .generate-btn');
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-magic"></i> 开始生成';
+                }
+            }
+        }
+
+        async function generateScene() {
+            // Prevent duplicate requests
+            if (isGenerating) {
+                return;
+            }
+
+            // Generate and save session ID immediately
+            const sessionId = generateUUID();
+            currentSessionId = sessionId;
+            localStorage.setItem('last_session_id', sessionId);
+            console.log('Saved session ID:', sessionId);
+
+            const name = document.getElementById('scene-name').value;
+            if (!name) {
+                alert('请输入名称');
+                return;
+            }
+            
+            if (sceneImages.length === 0) {
+                alert('请至少添加一张图片');
+                return;
+            }
+
+            // Disable button and show loading state
+            isGenerating = true;
+            const generateBtn = document.querySelector('#scenes-settings .generate-btn');
+            if (generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+            }
+
+            const statusMsg = document.getElementById('scene-status-message');
+            statusMsg.textContent = '生成中...';
+            statusMsg.className = 'status-message show generating';
+            
+            try {
+                // Prepare images base64
+                const imagesBase64 = sceneImages.map(img => img.data);
+
+                // Call Images to Scene API
+                const response = await fetch('/api/main/images_to_scene', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        images_base64: imagesBase64,
+                        quality: 'standard',
+                        session_id: sessionId,
+                        name: name
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Update status and display results
+                statusMsg.className = 'status-message show';
+                statusMsg.style.display = 'none';
+                
+                // Add scene result to display and save to database
+                if (result.result && result.result.scene_model) {
+                    addResult('model', `/api/file/${result.result.scene_model}`, '场景模型');
+                    
+                    // Save to database
+                    try {
+                        await fetch('/api/database/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                session_id: sessionId,
+                                category: 'scene',
+                                name: name,
+                                file_url: result.result.scene_model
+                            })
+                        });
+                        console.log('Scene model saved to database:', name);
+                    } catch (dbError) {
+                        console.error('Error saving to database:', dbError);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                statusMsg.textContent = `生成失败：${error.message}`;
+                statusMsg.className = 'status-message show';
+                statusMsg.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+                statusMsg.style.color = '#721c24';
+            } finally {
+                // Reset generating flag and restore button
+                isGenerating = false;
+                const generateBtn = document.querySelector('#scenes-settings .generate-btn');
+                if (generateBtn) {
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fas fa-magic"></i> 开始生成';
+                }
+            }
+        }
+
+        // Result management
+        function addResult(type, url, label) {
+            if (type === 'model') {
+                resultFiles.models.push({ url, label });
+            } else {
+                resultFiles.images.push({ url, label });
+            }
+            const lastIndex = type === 'model' ? resultFiles.models.length - 1 : resultFiles.images.length - 1;
+            updateResultNav(type, lastIndex);
+        }
+
+        function updateResultNav(resultType = null, resultIndex = null) {
+            const nav = document.getElementById('result-nav');
+            let html = '';
+            
+            // Add image buttons
+            resultFiles.images.forEach((img, index) => {
+                html += `
+                    <button class="nav-btn image-btn" onclick="showResult('image-${index}')">
+                        <img src="${img.url}" alt="${img.label}">
+                        <span style="font-size: 12px;">${img.label}</span>
+                    </button>
+                `;
+            });
+            
+            // Add model buttons
+            resultFiles.models.forEach((model, index) => {
+                html += `
+                    <button class="nav-btn model-btn" onclick="showResult('model-${index}')">
+                        ${model.label}
+                    </button>
+                `;
+            });
+            
+            // If no results, add placeholder button
+            if (resultFiles.images.length === 0 && resultFiles.models.length === 0) {
+                html = `<button class="nav-btn" style="cursor: default;">暂无结果</button>`;
+            }
+            
+            nav.innerHTML = html;
+            
+            // Activate and display specified result or first button (if not placeholder)
+            if (nav.firstChild && (resultFiles.images.length > 0 || resultFiles.models.length > 0)) {
+                if (resultType && resultIndex !== null) {
+                    // Show the newly added result
+                    displayResult(resultType, resultIndex);
+                    // Activate the corresponding button
+                    let buttonIndex = 0;
+                    if (resultType === 'image') {
+                        buttonIndex = resultIndex;
+                    } else {
+                        // For models, count all images first, then model index
+                        buttonIndex = resultFiles.images.length + resultIndex;
+                    }
+                    if (nav.children[buttonIndex]) {
+                        nav.children[buttonIndex].classList.add('active');
+                    }
+                } else {
+                    // Show the first result
+                    nav.firstChild.classList.add('active');
+                    if (resultFiles.images.length > 0) {
+                        displayResult('image', 0);
+                    } else if (resultFiles.models.length > 0) {
+                        displayResult('model', 0);
+                    }
+                }
+            }
+        }
+
+        // Display result without event (for auto-showing)
+        function displayResult(type, index) {
+            const display = document.getElementById('result-display');
+            const requestVersion = ++modelRenderRequestVersion;
+            
+            // Clear all elements in the container first
+            display.innerHTML = '';
+            if (pendingModelRenderTimeout) {
+                clearTimeout(pendingModelRenderTimeout);
+                pendingModelRenderTimeout = null;
+            }
+            
+            // Clear any existing viewer
+            if (currentModelViewer) {
+                try {
+                    currentModelViewer.destroy();
+                } catch (e) {
+                    console.warn('Error destroying viewer:', e);
+                }
+                currentModelViewer = null;
+            }
+            
+            // Remove click event listener
+            document.removeEventListener('click', handleOutsideClick);
+            
+            if (type === 'image') {
+                const imgData = resultFiles.images[parseInt(index)];
+                if (imgData) {
+                    display.innerHTML = `<img src="${imgData.url}" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+                }
+            } else if (type === 'none' || (type === 'model' && (!resultFiles.models || resultFiles.models.length === 0))) {
+                display.innerHTML = `
+                    <div class="no-result">
+                        <i class="fas fa-cube"></i>
+                        <p>生成结果将显示在这里</p>
+                    </div>
+                `;
+            } else if (type === 'model') {
+                const modelData = resultFiles.models[parseInt(index)];
+                if (modelData) {
+                    // Add detail button and control panel
+                    display.innerHTML = `
+                        <button class="detail-button" onclick="toggleControlPanel()">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <div class="control-panel" id="control-panel" onclick="event.stopPropagation()">
+                            <h3>模型控制</h3>
+                            <div class="control-item">
+                                <label>光照亮度</label>
+                                <input type="range" class="control-slider" id="light-intensity" min="0" max="2" value="1" step="0.1" oninput="updateLightIntensity(this.value)">
+                                <div class="control-value" id="light-intensity-value">1.0</div>
+                            </div>
+                            <div class="control-item">
+                                <label>色温</label>
+                                <input type="range" class="control-slider" id="light-temperature" min="2000" max="8000" value="5500" step="100" oninput="updateLightTemperature(this.value)">
+                                <div class="control-value" id="light-temperature-value">5500K</div>
+                            </div>
+                            <div class="control-actions">
+                                <button class="control-action-btn delete" onclick="deleteCurrentModel()">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                                <button class="control-action-btn download" onclick="downloadCurrentModel()">
+                                    <i class="fas fa-download"></i> 下载
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Store current model data globally for download/delete
+                    window.currentModelData = modelData;
+                    window.currentModelType = type;
+                    window.currentModelIndex = index;
+                    
+                    // Wait a bit before creating new viewer to avoid conflicts.
+                    // Guard with request version to prevent stale double render.
+                    pendingModelRenderTimeout = setTimeout(() => {
+                        if (requestVersion !== modelRenderRequestVersion) {
+                            return;
+                        }
+
+                        // Create Three.js viewer
+                        const viewer = new ModelViewer(display);
+                        viewer.loadModel(modelData.url).catch(err => {
+                            if (requestVersion !== modelRenderRequestVersion) {
+                                return;
+                            }
+                            console.error('Error loading model:', err);
+                            display.innerHTML = `<div style="text-align: center; padding: 50px; color: #666;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                                <p>模型加载失败</p>
+                                <p style="font-size: 0.9rem;">请检查文件是否存在</p>
+                            </div>`;
+                        });
+                        currentModelViewer = viewer;
+                        pendingModelRenderTimeout = null;
+                        
+                        // Add click outside to close control panel
+                        document.addEventListener('click', handleOutsideClick);
+                    }, 100);
+                }
+            }
+        }
+        
+        // Show result when button is clicked
+        function showResult(indexOrType) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Get the button that was clicked
+            const clickedBtn = window.event ? window.event.target.closest('.nav-btn') : null;
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+            
+            // Parse the index
+            let [type, index] = typeof indexOrType === 'string' ? indexOrType.split('-') : [undefined, indexOrType];
+            
+            // Use displayResult to show ONLY this content
+            displayResult(type, parseInt(index));
+        }
+        
+        // Toggle control panel
+        function toggleControlPanel() {
+            event.stopPropagation(); // Prevent the click from bubbling
+            const panel = document.getElementById('control-panel');
+            if (panel) {
+                panel.classList.toggle('show');
+            }
+        }
+        
+        // Handle click outside control panel
+        function handleOutsideClick(event) {
+            const panel = document.getElementById('control-panel');
+            const button = document.querySelector('.detail-button');
+            if (panel && panel.classList.contains('show')) {
+                // Check if click is outside both panel and button
+                if (!panel.contains(event.target) && !button.contains(event.target)) {
+                    panel.classList.remove('show');
+                }
+            }
+        }
+        
+        // Update light intensity
+        function updateLightIntensity(value) {
+            const valueDisplay = document.getElementById('light-intensity-value');
+            if (valueDisplay) {
+                valueDisplay.textContent = parseFloat(value).toFixed(1);
+            }
+            
+            // Update scene lights if viewer exists
+            if (currentModelViewer && currentModelViewer.scene) {
+                const intensity = parseFloat(value);
+                currentModelViewer.scene.traverse((object) => {
+                    if (object.isLight) {
+                        if (object.type === 'AmbientLight') {
+                            object.intensity = 0.6 * intensity;
+                        } else if (object.type === 'DirectionalLight') {
+                            const multiplier = object.userData.originalIntensity || 1;
+                            object.intensity = multiplier * intensity;
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Update light temperature (affects light color)
+        function updateLightTemperature(value) {
+            const valueDisplay = document.getElementById('light-temperature-value');
+            if (valueDisplay) {
+                valueDisplay.textContent = parseInt(value) + 'K';
+            }
+            
+            // Convert Kelvin to RGB color
+            const temp = parseInt(value);
+            const color = kelvinToRGB(temp);
+            
+            // Update scene lights if viewer exists
+            if (currentModelViewer && currentModelViewer.scene) {
+                currentModelViewer.scene.traverse((object) => {
+                    if (object.isLight && object.type === 'DirectionalLight') {
+                        // Keep ambient light neutral
+                        object.color.setRGB(color.r / 255, color.g / 255, color.b / 255);
+                    }
+                });
+            }
+        }
+        
+        // Convert Kelvin temperature to RGB
+        function kelvinToRGB(temp) {
+            temp = temp / 100;
+            let r, g, b;
+            
+            if (temp <= 66) {
+                r = 255;
+                g = temp;
+                g = 99.4708025861 * Math.log(g) - 161.1195681661;
+                if (temp <= 19) {
+                    b = 0;
+                } else {
+                    b = temp - 10;
+                    b = 138.5177312231 * Math.log(b) - 305.0447927307;
+                }
+            } else {
+                r = temp - 60;
+                r = 329.698727446 * Math.pow(r, -0.1332047592);
+                g = temp - 60;
+                g = 288.1221695283 * Math.pow(g, -0.0755148492);
+                b = 255;
+            }
+            
+            return {
+                r: Math.max(0, Math.min(255, Math.round(r))),
+                g: Math.max(0, Math.min(255, Math.round(g))),
+                b: Math.max(0, Math.min(255, Math.round(b)))
+            };
+        }
+        
+        // Delete current model
+        function deleteCurrentModel() {
+            if (!confirm('确定要删除这个模型吗？')) {
+                return;
+            }
+            
+            // Remove from arrays
+            if (window.currentModelType === 'model') {
+                resultFiles.models.splice(window.currentModelIndex, 1);
+                
+                // Update navigation first to remove the button
+                updateResultNav();
+                
+                // Show next model or first image if no models left
+                if (resultFiles.models.length > 0) {
+                    displayResult('model', 0);
+                } else if (resultFiles.images.length > 0) {
+                    displayResult('image', 0);
+                } else {
+                    displayResult('none', 0);
+                }
+            }
+        }
+        
+        // Download current model
+        function downloadCurrentModel() {
+            if (!window.currentModelData) {
+                alert('没有可下载的模型');
+                return;
+            }
+            
+            const url = window.currentModelData.url;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `model-${Date.now()}.glb`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Refresh session files from server
+        async function refreshSessionFiles() {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const icon = refreshBtn.querySelector('.fas');
+            
+            // Disable button and show loading state
+            refreshBtn.disabled = true;
+            if (icon) {
+                icon.classList.add('fa-spin');
+            }
+            
+            try {
+                // Get session ID from localStorage
+                const sessionId = localStorage.getItem('last_session_id');
+                if (!sessionId) {
+                    alert('没有找到会话ID，请先生成模型');
+                    return;
+                }
+                
+                // Fetch session files from API
+                const response = await fetch(`/api/session/${sessionId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Clear all existing results and container
+                resultFiles = { images: [], models: [] };
+                const display = document.getElementById('result-display');
+                display.innerHTML = '';
+                if (currentModelViewer) {
+                    try {
+                        currentModelViewer.destroy();
+                    } catch (e) {
+                        console.warn('Error destroying viewer:', e);
+                    }
+                    currentModelViewer = null;
+                }
+                
+                // Add found files to results
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(file => {
+                        const url = `/api/file/${file.path}`;
+                        // Add to resultFiles without updating UI
+                        if (file.type === 'model') {
+                            resultFiles.models.push({ url, label: file.label });
+                        } else {
+                            resultFiles.images.push({ url, label: file.label });
+                        }
+                    });
+                    
+                    // Manually build navigation and display the last file
+                    const lastFile = data.files[data.files.length - 1];
+                    const nav = document.getElementById('result-nav');
+                    let html = '';
+                    
+                    // Add image buttons
+                    resultFiles.images.forEach((img, index) => {
+                        html += `
+                            <button class="nav-btn image-btn" onclick="showResult('image-${index}')">
+                                <img src="${img.url}" alt="${img.label}">
+                                <span style="font-size: 12px;">${img.label}</span>
+                            </button>
+                        `;
+                    });
+                    
+                    // Add model buttons
+                    resultFiles.models.forEach((model, index) => {
+                        html += `
+                            <button class="nav-btn model-btn" onclick="showResult('model-${index}')">
+                                ${model.label}
+                            </button>
+                        `;
+                    });
+                    
+                    nav.innerHTML = html;
+                    
+                    // Display the last file and activate its button
+                    displayResult(lastFile.type, lastFile.type === 'model' ? resultFiles.models.length - 1 : resultFiles.images.length - 1);
+                    
+                    if (lastFile.type === 'image') {
+                        const buttonIndex = resultFiles.images.length - 1;
+                        if (nav.children[buttonIndex]) {
+                            nav.children[buttonIndex].classList.add('active');
+                        }
+                    } else {
+                        const buttonIndex = resultFiles.images.length + resultFiles.models.length - 1;
+                        if (nav.children[buttonIndex]) {
+                            nav.children[buttonIndex].classList.add('active');
+                        }
+                    }
+                    
+                    // Show success message
+                    console.log(`Loaded ${data.files.length} files for session ${sessionId}`);
+                } else {
+                    console.log('No files found for session', sessionId);
+                }
+                
+            } catch (error) {
+                console.error('Error refreshing session files:', error);
+                alert(`刷新失败：${error.message}`);
+            } finally {
+                // Restore button state
+                refreshBtn.disabled = false;
+                if (icon) {
+                    icon.classList.remove('fa-spin');
+                }
+            }
+        }
+
+        // Upload file handling
+        let uploadedModelFile = null;
+        const modelFileInput = document.getElementById('model-file-input');
+        const modelUploadArea = document.getElementById('model-upload-area');
+
+        // Initialize upload area when tab is shown
+        function initializeUploadArea() {
+            // Click to upload
+            modelUploadArea.addEventListener('click', () => {
+                modelFileInput.click();
+            });
+
+            // Drag and drop
+            modelUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                modelUploadArea.style.borderColor = 'var(--primary-color)';
+                modelUploadArea.style.background = 'rgba(102, 126, 234, 0.05)';
+            });
+
+            modelUploadArea.addEventListener('dragleave', () => {
+                modelUploadArea.style.borderColor = 'var(--border-color)';
+                modelUploadArea.style.background = 'var(--background-color)';
+            });
+
+            modelUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                modelUploadArea.style.borderColor = 'var(--border-color)';
+                modelUploadArea.style.background = 'var(--background-color)';
+                
+                const files = Array.from(e.dataTransfer.files).filter(f => 
+                    f.name.endsWith('.glb') || f.name.endsWith('.gltf') || f.name.endsWith('.obj')
+                );
+                if (files.length > 0) {
+                    handleModelFile(files[0]);
+                } else {
+                    alert('请上传GLB、GLTF或OBJ格式的3D模型文件');
+                }
+            });
+        }
+
+        // Handle file input change
+        modelFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                handleModelFile(file);
+            }
+        });
+
+        // Handle model file
+        function handleModelFile(file) {
+            uploadedModelFile = file;
+            updateModelUploadPreview(file);
+            // Display the uploaded file in the result area
+            displayUploadedFile(file);
+        }
+
+        // Display uploaded file in result area
+        function displayUploadedFile(file) {
+            // Create object URL for the file
+            const fileUrl = URL.createObjectURL(file);
+            
+            // Check if we already have this file displayed (avoid duplicates)
+            const existingIndex = resultFiles.models.findIndex(m => m.label === file.name);
+            
+            if (existingIndex === -1) {
+                // Add new file to results
+                resultFiles.models.push({ 
+                    url: fileUrl, 
+                    label: file.name 
+                });
+                const lastIndex = resultFiles.models.length - 1;
+                updateResultNav('model', lastIndex);
+            } else {
+                // File already exists, just show it
+                displayResult('model', existingIndex);
+                // Update active button
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+                const buttonIndex = resultFiles.images.length + existingIndex;
+                const nav = document.getElementById('result-nav');
+                if (nav.children[buttonIndex]) {
+                    nav.children[buttonIndex].classList.add('active');
+                }
+            }
+        }
+
+        // Update upload area with file info
+        function updateModelUploadPreview(file) {
+            const statusMsg = document.getElementById('upload-status-message');
+            statusMsg.textContent = `已选择文件：${file.name}`;
+            statusMsg.className = 'status-message show';
+            statusMsg.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+            statusMsg.style.color = '#155724';
+            
+            modelUploadArea.classList.add('has-content');
+            modelUploadArea.style.position = 'relative';
+            modelUploadArea.innerHTML = `
+                <div style="padding: 20px; position: relative; width: 100%; height: 100%;">
+                    <button class="delete-btn" onclick="removeModelFile()" style="position: absolute; top: 10px; right: 10px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <i class="fas fa-check-circle" style="font-size: 3rem; color: #28a745;"></i>
+                    </div>
+                    <p style="text-align: center; font-weight: 600; margin-bottom: 10px;">${file.name}</p>
+                    <p style="text-align: center; font-size: 12px; color: #8d99ae;">文件大小: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+            `;
+        }
+
+        // Remove uploaded file
+        function removeModelFile() {
+            // Remove from result files if exists
+            if (uploadedModelFile) {
+                const fileIndex = resultFiles.models.findIndex(m => m.label === uploadedModelFile.name);
+                if (fileIndex !== -1) {
+                    // Revoke the object URL to free memory
+                    URL.revokeObjectURL(resultFiles.models[fileIndex].url);
+                    // Remove from array
+                    resultFiles.models.splice(fileIndex, 1);
+                    // Update navigation
+                    updateResultNav();
+                    // Show appropriate content
+                    if (resultFiles.models.length > 0) {
+                        displayResult('model', 0);
+                    } else if (resultFiles.images.length > 0) {
+                        displayResult('image', 0);
+                    } else {
+                        displayResult('none', 0);
+                    }
+                }
+            }
+            
+            uploadedModelFile = null;
+            const statusMsg = document.getElementById('upload-status-message');
+            statusMsg.className = 'status-message';
+            statusMsg.style.display = 'none';
+            
+            modelUploadArea.classList.remove('has-content');
+            modelUploadArea.innerHTML = `
+                <div class="upload-placeholder">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>点击或拖拽上传3D模型文件</p>
+                    <p style="font-size: 12px; color: #8d99ae; margin-top: 10px;">支持格式：GLB, GLTF, OBJ</p>
+                </div>
+            `;
+            modelFileInput.value = '';
+        }
+
+        // Confirm upload function
+        async function confirmUpload() {
+            // Validate name and file
+            const name = document.getElementById('upload-name').value.trim();
+            if (!name) {
+                alert('请输入名称');
+                return;
+            }
+            
+            if (!uploadedModelFile) {
+                alert('请先上传3D模型文件');
+                return;
+            }
+
+            // Get selected category
+            const category = document.querySelector('input[name="upload-category"]:checked').value;
+
+            // Disable button and show loading state
+            const confirmBtn = document.getElementById('confirm-upload-btn');
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
+
+            const statusMsg = document.getElementById('upload-status-message');
+            statusMsg.textContent = '正在上传文件...';
+            statusMsg.className = 'status-message show';
+            statusMsg.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
+            statusMsg.style.color = '#004085';
+
+            try {
+                // Generate unique session ID
+                const sessionId = generateUUID();
+                currentSessionId = sessionId;
+                localStorage.setItem('last_session_id', sessionId);
+                console.log('Generated session ID:', sessionId);
+                console.log('Upload category:', category);
+
+                // Get file extension
+                const fileName = uploadedModelFile.name;
+                const fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+                const uploadFileName = `${sessionId}_textured${fileExtension}`;
+
+                statusMsg.textContent = category === 'scene'
+                    ? '正在生成场景俯视渲染图...'
+                    : '正在生成模型渲染图...';
+                const renderPreviewBlob = await generateUploadRenderPreview(uploadedModelFile, category);
+
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('file', uploadedModelFile);
+                formData.append('name', name);
+                formData.append('session_id', sessionId);
+                formData.append('filename', uploadFileName);
+                formData.append('category', category);
+                if (renderPreviewBlob) {
+                    formData.append('render_image', renderPreviewBlob, `${sessionId}_render.png`);
+                }
+
+                statusMsg.textContent = '正在上传文件...';
+
+                // Upload file to server
+                const response = await fetch('/api/main/upload_model', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Success message
+                statusMsg.textContent = '文件上传成功';
+                statusMsg.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                statusMsg.style.color = '#155724';
+
+                console.log('File uploaded successfully:', result);
+
+                // Add uploaded file to result list
+                if (result.file_url) {
+                    addResult('model', `/api/file/${result.file_url}`, name);
+                }
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                statusMsg.textContent = `上传失败：${error.message}`;
+                statusMsg.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+                statusMsg.style.color = '#721c24';
+            } finally {
+                // Restore button
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> 确认上传';
+            }
+        }
+
+        function dataURLToBlob(dataURL) {
+            const parts = dataURL.split(',');
+            const mimeMatch = parts[0].match(/:(.*?);/);
+            const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+            const byteString = atob(parts[1]);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mime });
+        }
+
+        async function generateUploadRenderPreview(file, category) {
+            const objectUrl = URL.createObjectURL(file);
+            const previewScene = new THREE.Scene();
+            previewScene.background = new THREE.Color(0xf6f6f6);
+
+            const previewCamera = new THREE.PerspectiveCamera(45, 4 / 3, 0.1, 1000);
+            const previewRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+            previewRenderer.setSize(800, 600);
+            previewRenderer.setPixelRatio(window.devicePixelRatio || 1);
+            previewRenderer.outputEncoding = THREE.sRGBEncoding;
+            previewRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+            previewRenderer.toneMappingExposure = 1.4;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1.1);
+            mainLight.position.set(3, 4, 5);
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            fillLight.position.set(-3, 2, -4);
+            const topLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            topLight.position.set(0, 6, 0);
+            previewScene.add(ambientLight, mainLight, fillLight, topLight);
+
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            try {
+                const object3D = await new Promise((resolve, reject) => {
+                    if (ext === 'obj') {
+                        const objLoader = new THREE.OBJLoader();
+                        objLoader.load(objectUrl, resolve, undefined, reject);
+                    } else {
+                        const gltfLoader = new THREE.GLTFLoader();
+                        gltfLoader.load(objectUrl, (gltf) => resolve(gltf.scene), undefined, reject);
+                    }
+                });
+
+                previewScene.add(object3D);
+
+                const box = new THREE.Box3().setFromObject(object3D);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z, 1e-3);
+
+                object3D.position.sub(center);
+                const target = new THREE.Vector3(0, 0, 0);
+
+                if (category === 'scene') {
+                    // 场景使用俯视图
+                    previewCamera.position.set(0.001, maxDim * 2.2, 0.001);
+                    previewCamera.up.set(0, 0, -1);
+                } else {
+                    previewCamera.position.set(maxDim * 1.4, maxDim * 1.2, maxDim * 1.4);
+                    previewCamera.up.set(0, 1, 0);
+                }
+                previewCamera.lookAt(target);
+                previewCamera.updateProjectionMatrix();
+
+                previewRenderer.render(previewScene, previewCamera);
+                const dataUrl = previewRenderer.domElement.toDataURL('image/png');
+                return dataURLToBlob(dataUrl);
+            } catch (error) {
+                console.warn('生成上传渲染图失败，继续上传模型:', error);
+                return null;
+            } finally {
+                URL.revokeObjectURL(objectUrl);
+                previewRenderer.dispose();
+            }
+        }
+
+    </script>
+</body>
+</html>
